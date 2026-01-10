@@ -1,6 +1,7 @@
 {
   "import": [
     "mizchi/js/browser/dom",
+    "mizchi/js/browser/history",
     "mizchi/js/browser/observer",
     "mizchi/js/web/event",
     "mizchi/js/web/http",

@@ -8,6 +8,7 @@ pub enum SwapStyle {
   BeforeEnd
   AfterEnd
   Delete
+  Morph
   None
 }
 
@@ -23,6 +24,7 @@ pub fn SwapStyle::parse(value : String) -> SwapStyle {
     "afterend" => AfterEnd
     "delete" => Delete
     "none" => None
+    "morph" => Morph
     _ => InnerHTML // default
   }
 }
@@ -45,11 +47,13 @@ pub fn swap(target : @dom.Element, content : String, style : SwapStyle) -> Unit 
   match style {
     InnerHTML => target.setInnerHTML(content)
     OuterHTML => target.setOuterHTML(content)
-    BeforeBegin => target.insertAdjacentHTML("beforebegin", content)
-    AfterBegin => target.insertAdjacentHTML("afterbegin", content)
-    BeforeEnd => target.insertAdjacentHTML("beforeend", content)
-    AfterEnd => target.insertAdjacentHTML("afterend", content)
+    Morph => morph(target, content)
     Delete => target.remove()
-    None => () // do nothing
+    None => ()
+    _ =>
+      match style.to_position() {
+        Some(pos) => target.insertAdjacentHTML(pos, content)
+        None => () // Should not happen for remaining cases
+      }
   }
 }

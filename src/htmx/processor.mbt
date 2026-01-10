@@ -31,7 +31,21 @@ async fn process_element_internal(element : @dom.Element) -> Unit noraise {
 
   // Swap content if we got a response
   match response {
-    Some(content) => swap(target, content, swap_style)
+    Some(content) => {
+      let select_val = get_select(element)
+      let final_content = process_response(content, select_val)
+      swap(target, final_content, swap_style)
+
+      // Handle history API
+      match get_push_url(element) {
+        Some(push_val) =>
+          if push_val != "false" {
+            let dest_url = if push_val == "true" { url } else { push_val }
+            push_url(dest_url)
+          }
+        None => ()
+      }
+    }
     None => @core.log(@core.any("htmx request failed"))
   }
 }

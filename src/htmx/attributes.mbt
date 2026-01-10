@@ -114,3 +114,15 @@ pub fn find_htmx_element(element : @dom.Element) -> @dom.Element? {
   // Check ancestors
   element.closest("[hx-get], [hx-post], [hx-put], [hx-delete], [hx-patch]")
 }
+
+///|
+/// Get the selector for the content to be swapped from the response
+pub fn get_select(element : @dom.Element) -> String? {
+  element.getAttribute("hx-select")
+}
+
+///|
+/// Get push URL value
+pub fn get_push_url(element : @dom.Element) -> String? {
+  element.getAttribute("hx-push-url")
+}
