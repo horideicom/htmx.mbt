@@ -21,10 +21,6 @@ pub fn OobSpec::new(style : SwapStyle, target : String?) -> OobSpec {
   { style, target }
 }
 
-///|
-/// Find element by selector in document
-extern "js" fn query_selector(selector : String) -> @dom.Element? =
-  #|(sel) => document.querySelector(sel)
 
 ///|
 /// Insert adjacent HTML
@@ -131,16 +127,16 @@ pub fn execute_oob_swap(
 
 ///|
 /// Find OOB target element
-/// If spec has a custom target, use querySelector
+/// If spec has a custom target, use querySelector on document
 /// Otherwise, use the new_el's id to find the target
 pub fn find_oob_target(new_el : @dom.Element, spec : OobSpec) -> @dom.Element? {
   match spec.target {
-    Some(selector) => query_selector(selector)
+    Some(selector) => @dom.document().querySelector(selector)
     None =>
       match new_el.getAttribute("id") {
         Some(id) => {
           let doc_selector = "#\{id}"
-          query_selector(doc_selector)
+          @dom.document().querySelector(doc_selector)
         }
         None => None
       }

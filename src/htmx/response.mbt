@@ -36,8 +36,10 @@ pub fn process_response(content : String, select : String?) -> String {
 /// Supports both simple (hx-swap-oob="true") and complex (hx-swap-oob="innerHTML:#target") syntax
 fn process_oob_swaps(container : @dom.Element) -> Unit {
   let oob_elements = container.querySelectorAll("[hx-swap-oob]")
+  @core.log(@core.any("OOB: Found \{oob_elements.length()} OOB elements"))
   for el in oob_elements {
     let oob_val = el.getAttribute("hx-swap-oob").unwrap_or("true")
+    @core.log(@core.any("OOB: Processing hx-swap-oob=\"\{oob_val}\""))
 
     // Parse OOB specification
     let spec = parse_oob_spec(oob_val)
@@ -45,6 +47,7 @@ fn process_oob_swaps(container : @dom.Element) -> Unit {
     // Find target element
     match find_oob_target(el, spec) {
       Some(target_el) => {
+        @core.log(@core.any("OOB: Target found, executing swap"))
         execute_oob_swap(el, target_el, spec)
         // Remove from response content
         el.remove()
