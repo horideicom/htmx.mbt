@@ -10,6 +10,11 @@ async fn process_element_internal(element : @dom.Element) -> Unit noraise {
   let swap_style = get_swap_style(element)
 
   // Handle form data for POST/PUT/PATCH
+  @core.log(
+    @core.any(
+      "Processing element: \{element.tagName()} Method: \{http_method} URL: \{url}",
+    ),
+  )
   let response = if http_method.has_body() {
     // Collect form data for methods that have a body
     let form_data = get_form_data(element)
@@ -26,6 +31,7 @@ async fn process_element_internal(element : @dom.Element) -> Unit noraise {
       }
       None => url
     }
+    @core.log(@core.any("Sending request to: \{actual_url}"))
     request_safe(actual_url, http_method)
   }
 

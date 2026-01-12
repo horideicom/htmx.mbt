@@ -21,6 +21,11 @@ pub fn HttpMethod::to_string(self : HttpMethod) -> String {
 }
 
 ///|
+pub impl Show for HttpMethod with output(self, logger) {
+  logger.write_string(self.to_string())
+}
+
+///|
 /// Check if method sends a body
 pub fn HttpMethod::has_body(self : HttpMethod) -> Bool {
   match self {

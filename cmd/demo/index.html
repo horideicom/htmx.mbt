@@ -144,8 +144,7 @@
         <div id="oob-target">Original Content</div>
     </div>
 
-    <div id="oob-target">Original Content</div>
-    </div>
+
 
     <div class="demo-section">
         <h2>DOM Morphing</h2>
@@ -180,8 +179,10 @@
     </div>
 
     <script type="module">
+        console.log("HTML: Starting script load...");
         // Load the MoonBit-compiled htmx.mbt
         import './main.js';
+        console.log("HTML: Import statement executed. If no 'DEBUG' logs appear, htmx failed to init.");
     </script>
 </body>
 
