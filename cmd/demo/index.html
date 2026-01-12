@@ -139,9 +139,33 @@
     <div class="demo-section">
         <h2>Out-Of-Band Swaps (OOB)</h2>
         <button hx-get="/api/oob-demo" hx-swap="none">
-            Trigger OOB Swap
+            Trigger OOB Swap (true)
         </button>
         <div id="oob-target">Original Content</div>
+        <p class="note">Uses <code>hx-swap-oob="true"</code></p>
+    </div>
+
+    <div class="demo-section">
+        <h2>OOB with Custom Target</h2>
+        <button hx-get="/api/oob-custom" hx-swap="none">
+            Update Sidebar (innerHTML:#sidebar)
+        </button>
+        <div id="main-content">Main content will be updated here.</div>
+        <div id="sidebar" style="background: rgba(255, 107, 107, 0.1); padding: 10px; border-radius: 8px;">
+            Sidebar - waits for OOB update
+        </div>
+        <p class="note">Uses <code>hx-swap-oob="innerHTML:#sidebar"</code></p>
+    </div>
+
+    <div class="demo-section">
+        <h2>OOB Delete Element</h2>
+        <button hx-get="/api/oob-delete" hx-swap="none">
+            Remove Temp Element
+        </button>
+        <div id="temp-element" style="background: rgba(255, 107, 107, 0.2); padding: 10px; border-radius: 8px;">
+            ⏳ Temporary element - will be deleted via OOB
+        </div>
+        <p class="note">Uses <code>hx-swap-oob="delete"</code></p>
     </div>
 
 

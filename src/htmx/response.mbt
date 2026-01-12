@@ -33,48 +33,36 @@ pub fn process_response(content : String, select : String?) -> String {
 ///|
 /// Process Out-Of-Band swaps
 /// Finds elements with hx-swap-oob and swaps them into the main DOM
+/// Supports both simple (hx-swap-oob="true") and complex (hx-swap-oob="innerHTML:#target") syntax
 fn process_oob_swaps(container : @dom.Element) -> Unit {
   let oob_elements = container.querySelectorAll("[hx-swap-oob]")
   for el in oob_elements {
     let oob_val = el.getAttribute("hx-swap-oob").unwrap_or("true")
-    match el.getAttribute("id") {
-      Some(id) =>
-        // Find target in main document
-        match @dom.document().getElementById(id) {
-          Some(target_el) => {
-            handle_single_oob(el, target_el, oob_val)
-            // Remove from response content
-            el.remove()
-          }
-          None => @core.log(@core.any("OOB Error: Target id=\{id} not found"))
+
+    // Parse OOB specification
+    let spec = parse_oob_spec(oob_val)
+
+    // Find target element
+    match find_oob_target(el, spec) {
+      Some(target_el) => {
+        execute_oob_swap(el, target_el, spec)
+        // Remove from response content
+        el.remove()
+      }
+      None => {
+        // Log error for missing target
+        let target_info = match spec.target {
+          Some(sel) => "selector: \{sel}"
+          None =>
+            match el.getAttribute("id") {
+              Some(id) => "id: \{id}"
+              None => "unknown target"
+            }
         }
-      None =>
-        @core.log(@core.any("OOB Error: hx-swap-oob element requires an id"))
+        @core.log(@core.any("OOB Error: Target not found (\{target_info})"))
+      }
     }
   }
-}
-
-///|
-/// Handle a single OOB swap
-fn handle_single_oob(
-  new_el : @dom.Element,
-  target_el : @dom.Element,
-  oob_val : String,
-) -> Unit {
-  // Parse OOB value for swap style (e.g. "true", "innerHTML", "outerHTML:#foo")
-  // For now, simple implementation: if "true", use outerHTML swap
-  // TODO: Support complex OOB syntax (e.g. "beforeend:.target")
-
-  // Default OOB is outerHTML replacement
-  // TODO: Implement parsing for "beforeend:#id" etc.
-  if oob_val != "true" {
-    // Log warning for unsupported OOB syntax for now
-    @core.log(
-      @core.any("Warning: Unsupported OOB syntax: \{oob_val}. Using outerHTML."),
-    )
-  }
-  let content = get_outer_html(new_el)
-  target_el.setOuterHTML(content)
 }
 
 ///|

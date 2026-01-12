@@ -49,41 +49,51 @@ pub impl Show for ScrollDirection with output(self, logger) {
 ///|
 /// Scroll specification for swap modifier
 pub struct ScrollSpec {
-  direction: ScrollDirection
-  target: String?
+  direction : ScrollDirection
+  target : String?
 }
 
 ///|
 /// Show specification for swap modifier
 pub struct ShowSpec {
-  direction: ScrollDirection
-  target: String?
+  direction : ScrollDirection
+  target : String?
 }
 
 ///|
 /// Complete swap specification with modifiers
 pub struct SwapSpec {
-  style: SwapStyle
-  swap_delay_ms: Int
-  settle_delay_ms: Int
-  scroll: ScrollSpec?
-  show: ShowSpec?
-  focus_scroll: Bool
-  ignore_title: Bool
+  style : SwapStyle
+  swap_delay_ms : Int
+  settle_delay_ms : Int
+  scroll : ScrollSpec?
+  show : ShowSpec?
+  focus_scroll : Bool
+  ignore_title : Bool
 }
 
 ///|
 /// FFI helpers for swap parsing
 extern "js" fn substring_before(s : String, end : Int) -> String =
   #|(s, end) => { return s.substring(0, end); }
+
+///|
 extern "js" fn substring_after_js(s : String, start : Int) -> String =
   #|(s, start) => { return s.substring(start); }
+
+///|
 extern "js" fn has_suffix_js(s : String, suffix : String) -> Bool =
   #|(s, suffix) => { return s.endsWith(suffix); }
+
+///|
 extern "js" fn split_spaces(s : String) -> Array[String] =
   #|(s) => { return s.trim().split(/\s+/); }
+
+///|
 extern "js" fn js_parse_int_or(s : String, def : Int) -> Int =
   #|(s, def) => { let n = parseInt(s, 10); return isNaN(n) ? def : n; }
+
+///|
 extern "js" fn starts_with_js(s : String, prefix : String) -> Bool =
   #|(s, prefix) => { return s.startsWith(prefix); }
 
@@ -110,7 +120,15 @@ pub fn SwapSpec::new(
   focus_scroll : Bool,
   ignore_title : Bool,
 ) -> SwapSpec {
-  { style, swap_delay_ms, settle_delay_ms, scroll, show, focus_scroll, ignore_title }
+  {
+    style,
+    swap_delay_ms,
+    settle_delay_ms,
+    scroll,
+    show,
+    focus_scroll,
+    ignore_title,
+  }
 }
 
 ///|
@@ -124,19 +142,12 @@ pub fn SwapSpec::parse(value : String) -> SwapSpec {
   let mut show_spec = Option::None
   let mut focus_scroll = true
   let mut ignore_title = false
-
   let mut i = 0
   while i < parts.length() {
     let part = parts[i]
     if part != "" {
       let result = parse_swap_spec_part(
-        part,
-        style,
-        swap_delay,
-        settle_delay,
-        scroll_spec,
-        show_spec,
-        focus_scroll,
+        part, style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll,
         ignore_title,
       )
       style = result.0
@@ -149,8 +160,9 @@ pub fn SwapSpec::parse(value : String) -> SwapSpec {
     }
     i = i + 1
   }
-
-  SwapSpec::new(style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, ignore_title)
+  SwapSpec::new(
+    style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, ignore_title,
+  )
 }
 
 ///|
@@ -168,28 +180,62 @@ fn parse_swap_spec_part(
   if is_swap_modifier(part, "swap:") {
     let ms_str = substring_after_js(part, 5)
     let ms = parse_swap_duration_ms(ms_str)
-    (style, ms, settle_delay, scroll_spec, show_spec, focus_scroll, ignore_title)
+    (
+      style, ms, settle_delay, scroll_spec, show_spec, focus_scroll, ignore_title,
+    )
   } else if is_swap_modifier(part, "settle:") {
     let ms_str = substring_after_js(part, 7)
     let ms = parse_swap_duration_ms(ms_str)
     (style, swap_delay, ms, scroll_spec, show_spec, focus_scroll, ignore_title)
   } else if is_swap_modifier(part, "scroll:") {
     let scroll_value = substring_after_js(part, 7)
-    (style, swap_delay, settle_delay, Some(parse_scroll_spec(scroll_value)), show_spec, focus_scroll, ignore_title)
+    (
+      style,
+      swap_delay,
+      settle_delay,
+      Some(parse_scroll_spec(scroll_value)),
+      show_spec,
+      focus_scroll,
+      ignore_title,
+    )
   } else if is_swap_modifier(part, "show:") {
     let show_value = substring_after_js(part, 5)
-    (style, swap_delay, settle_delay, scroll_spec, Some(parse_show_spec(show_value)), focus_scroll, ignore_title)
+    (
+      style,
+      swap_delay,
+      settle_delay,
+      scroll_spec,
+      Some(parse_show_spec(show_value)),
+      focus_scroll,
+      ignore_title,
+    )
   } else if part == "focus-scroll:true" {
-    (style, swap_delay, settle_delay, scroll_spec, show_spec, true, ignore_title)
+    (
+      style, swap_delay, settle_delay, scroll_spec, show_spec, true, ignore_title,
+    )
   } else if part == "focus-scroll:false" {
-    (style, swap_delay, settle_delay, scroll_spec, show_spec, false, ignore_title)
+    (
+      style, swap_delay, settle_delay, scroll_spec, show_spec, false, ignore_title,
+    )
   } else if part == "ignoreTitle:true" {
-    (style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, true)
+    (
+      style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, true,
+    )
   } else if part == "ignoreTitle:false" {
-    (style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, false)
+    (
+      style, swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, false,
+    )
   } else {
     // Try to parse as swap style
-    (SwapStyle::parse(part), swap_delay, settle_delay, scroll_spec, show_spec, focus_scroll, ignore_title)
+    (
+      SwapStyle::parse(part),
+      swap_delay,
+      settle_delay,
+      scroll_spec,
+      show_spec,
+      focus_scroll,
+      ignore_title,
+    )
   }
 }
 
@@ -205,7 +251,11 @@ fn parse_scroll_spec(value : String) -> ScrollSpec {
   if is_swap_modifier(value, "top") {
     let rest = substring_after_js(value, 3)
     if rest == "" || is_swap_modifier(rest, ":") {
-      let target = if rest == "" { Option::None } else { Some(substring_after_js(rest, 1)) }
+      let target = if rest == "" {
+        Option::None
+      } else {
+        Some(substring_after_js(rest, 1))
+      }
       ScrollSpec::new(Top, target)
     } else {
       ScrollSpec::new(Top, Option::None)
@@ -213,7 +263,11 @@ fn parse_scroll_spec(value : String) -> ScrollSpec {
   } else if is_swap_modifier(value, "bottom") {
     let rest = substring_after_js(value, 6)
     if rest == "" || is_swap_modifier(rest, ":") {
-      let target = if rest == "" { Option::None } else { Some(substring_after_js(rest, 1)) }
+      let target = if rest == "" {
+        Option::None
+      } else {
+        Some(substring_after_js(rest, 1))
+      }
       ScrollSpec::new(Bottom, target)
     } else {
       ScrollSpec::new(Bottom, Option::None)
@@ -226,7 +280,10 @@ fn parse_scroll_spec(value : String) -> ScrollSpec {
 
 ///|
 /// Constructor for ScrollSpec
-pub fn ScrollSpec::new(direction : ScrollDirection, target : String?) -> ScrollSpec {
+pub fn ScrollSpec::new(
+  direction : ScrollDirection,
+  target : String?,
+) -> ScrollSpec {
   { direction, target }
 }
 
@@ -236,7 +293,11 @@ fn parse_show_spec(value : String) -> ShowSpec {
   if is_swap_modifier(value, "top") {
     let rest = substring_after_js(value, 3)
     if rest == "" || is_swap_modifier(rest, ":") {
-      let target = if rest == "" { Option::None } else { Some(substring_after_js(rest, 1)) }
+      let target = if rest == "" {
+        Option::None
+      } else {
+        Some(substring_after_js(rest, 1))
+      }
       ShowSpec::new(Top, target)
     } else {
       ShowSpec::new(Top, Option::None)
@@ -244,7 +305,11 @@ fn parse_show_spec(value : String) -> ShowSpec {
   } else if is_swap_modifier(value, "bottom") {
     let rest = substring_after_js(value, 6)
     if rest == "" || is_swap_modifier(rest, ":") {
-      let target = if rest == "" { Option::None } else { Some(substring_after_js(rest, 1)) }
+      let target = if rest == "" {
+        Option::None
+      } else {
+        Some(substring_after_js(rest, 1))
+      }
       ShowSpec::new(Bottom, target)
     } else {
       ShowSpec::new(Bottom, Option::None)

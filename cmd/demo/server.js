@@ -117,6 +117,26 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (pathname === '/api/oob-custom') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+         <div>Main response: Updated at ${new Date().toLocaleTimeString()}</div>
+         <div id="sidebar" hx-swap-oob="innerHTML:#sidebar" style="background: rgba(255, 107, 107, 0.3); padding: 10px; border-radius: 8px;">
+             ✅ Sidebar updated via <code>innerHTML:#sidebar</code> at ${new Date().toLocaleTimeString()}
+         </div>
+         `);
+        return;
+    }
+
+    if (pathname === '/api/oob-delete') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+         <div>Response: Temp element will be deleted</div>
+         <div id="temp-element" hx-swap-oob="delete"></div>
+         `);
+        return;
+    }
+
     if (pathname.startsWith('/api/page')) {
         const page = pathname.replace('/api/', '');
         res.writeHead(200, { 'Content-Type': 'text/html' });
