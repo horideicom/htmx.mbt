@@ -21,7 +21,6 @@ pub fn OobSpec::new(style : SwapStyle, target : String?) -> OobSpec {
   { style, target }
 }
 
-
 ///|
 /// Insert adjacent HTML
 extern "js" fn insert_adjacent(
