@@ -1,0 +1,10 @@
+{
+  "is-main": true,
+  "import": [
+    {
+      "path": "horideicom/htmx/src/htmx",
+      "alias": "htmx"
+    },
+    "mizchi/js/core"
+  ]
+}
