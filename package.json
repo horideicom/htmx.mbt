@@ -3,11 +3,14 @@
   "private": true,
   "scripts": {
     "build:htmx-test": "moon build --target js",
-    "test:htmx": "npm run build:htmx-test && web-test-runner --config web-test-runner.config.mjs --browsers chrome --concurrency 1"
+    "test:htmx": "pnpm build:htmx-test && pnpm exec wtr --config web-test-runner.config.mjs --concurrency 3",
+    "test:coverage": "pnpm build:htmx-test && pnpm exec wtr --config web-test-runner.config.mjs --coverage --concurrency 3",
+    "coverage:view": "xdg-open coverage/index.html"
   },
   "devDependencies": {
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-chrome": "^0.18.1",
+    "@web/test-runner-coverage-v8": "^0.8.0",
     "chai": "^4.5.0",
     "chai-dom": "^1.12.1",
     "mocha": "^11.7.4",

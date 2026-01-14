@@ -1,6 +1,14 @@
 import { defaultReporter, summaryReporter } from '@web/test-runner'
+import { chromeLauncher } from '@web/test-runner-chrome'
 
 const config = {
+  browsers: [chromeLauncher()],
+  coverage: true,
+  coverageConfig: {
+    include: ['target/js/release/build/**/*.js'],
+    reportDir: 'coverage',
+    reporters: ['html', 'lcov', 'text-summary']
+  },
   testRunnerHtml: (testFramework) => `
   <html lang="en">
     <head>
