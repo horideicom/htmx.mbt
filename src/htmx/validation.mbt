@@ -80,7 +80,10 @@ extern "js" fn dispatch_validation_failed_event(
 
 ///|
 /// Dispatch htmx:validation:failed event on form with errors array
-extern "js" fn dispatch_validation_failed_on_form(form : @dom.Element, errors : @core.Any) -> Bool =
+extern "js" fn dispatch_validation_failed_on_form(
+  form : @dom.Element,
+  errors : @core.Any,
+) -> Bool =
   #|(form, errors) => {
   #|  const evt = new CustomEvent('htmx:validation:failed', {
   #|    bubbles: true,
@@ -92,7 +95,10 @@ extern "js" fn dispatch_validation_failed_on_form(form : @dom.Element, errors : 
 
 ///|
 /// Dispatch htmx:validation:halted event on form with errors array
-extern "js" fn dispatch_validation_halted(form : @dom.Element, errors : @core.Any) -> Unit =
+extern "js" fn dispatch_validation_halted(
+  form : @dom.Element,
+  errors : @core.Any,
+) -> Unit =
   #|(form, errors) => {
   #|  const evt = new CustomEvent('htmx:validation:halted', {
   #|    bubbles: true,
@@ -186,6 +192,7 @@ pub fn validate_element(element : @dom.Element) -> Bool {
         let first = invalids[0]
         focus_element(first)
         let _ = form_report_validity(element)
+
       }
       return false
     }
