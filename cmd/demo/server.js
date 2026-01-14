@@ -149,6 +149,112 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // ========== New Endpoints ==========
+
+    // Validation endpoint
+    if (pathname === '/api/validate' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<div style="color: green;">✅ Validation passed! Form submitted at ${new Date().toLocaleTimeString()}</div>`);
+        });
+        return;
+    }
+
+    // PUT endpoint
+    if (pathname === '/api/put' && req.method === 'PUT') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<div style="color: cyan;">🔄 PUT request received at ${new Date().toLocaleTimeString()}</div>`);
+        });
+        return;
+    }
+
+    // DELETE endpoint
+    if (pathname === '/api/delete' && req.method === 'DELETE') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<div style="color: orange;">🗑️ DELETE request successful at ${new Date().toLocaleTimeString()}</div>`);
+        return;
+    }
+
+    // PATCH endpoint
+    if (pathname === '/api/patch' && req.method === 'PATCH') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<div style="color: yellow;">🩹 PATCH request applied at ${new Date().toLocaleTimeString()}</div>`);
+        });
+        return;
+    }
+
+    // Trigger: once counter
+    let onceCount = 0;
+    if (pathname === '/api/once') {
+        onceCount++;
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<span>Clicked ${onceCount} time(s)</span>`);
+        return;
+    }
+
+    // Trigger: delay/throttle test
+    if (pathname === '/api/delay') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<span>Search result for: ${url.searchParams.get('q') || 'empty'} at ${new Date().toLocaleTimeString()}</span>`);
+        return;
+    }
+
+    if (pathname === '/api/throttle') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<span>Throttled click at ${new Date().toLocaleTimeString()}</span>`);
+        return;
+    }
+
+    // Extended target selectors
+    if (pathname === '/api/update-container') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`Container updated at ${new Date().toLocaleTimeString()}`);
+        return;
+    }
+
+    if (pathname === '/api/update-next') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<span style="color: lime;">Next element updated! ${new Date().toLocaleTimeString()}</span>`);
+        return;
+    }
+
+    if (pathname === '/api/update-find') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<strong>Found element updated!</strong>`);
+        return;
+    }
+
+    // Scroll demo
+    if (pathname === '/api/scroll-demo') {
+        const lines = Array.from({ length: 10 }, (_, i) => `<p>Line ${i + 1} - Added at ${new Date().toLocaleTimeString()}</p>`).join('');
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(lines);
+        return;
+    }
+
+    // Changed modifier demo
+    if (pathname === '/api/changed') {
+        const value = url.searchParams.get('value') || '';
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<div style="color: lightgreen;">Value changed to: "${value}"</div>`);
+        return;
+    }
+
+    // Global event demo (from:document)
+    if (pathname === '/api/global-event') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<span>Global event triggered! ${new Date().toLocaleTimeString()}</span>`);
+        return;
+    }
+
     res.writeHead(404);
     res.end('Not Found');
 });

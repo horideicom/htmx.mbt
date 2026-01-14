@@ -199,13 +199,137 @@
         <div id="history-content">Current Content</div>
     </div>
 
+    <!-- ========== New Demo Sections ========== -->
+
+    <div class="demo-section">
+        <h2>HTML5 Form Validation</h2>
+        <p>Try submitting with empty fields to see validation in action.</p>
+        <form hx-post="/api/validate" hx-target="#validation-result">
+            <div style="margin-bottom: 1rem;">
+                <label>Name (required): <input type="text" name="name" required></label>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>Email (required): <input type="email" name="email" required></label>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>Age (18+): <input type="number" name="age" min="18" required></label>
+            </div>
+            <button type="submit">Submit (Validates)</button>
+            <button type="submit" formnovalidate>Skip Validation</button>
+        </form>
+        <div id="validation-result">
+            <em>Validation result will appear here...</em>
+        </div>
+        <div id="validation-log" style="margin-top: 1rem; font-size: 0.85rem; color: #888;">
+            <p>Validation events will be logged here...</p>
+        </div>
+        <p class="note">Uses <code>required</code>, <code>min</code> attributes and <code>htmx:validation:validate</code> events</p>
+    </div>
+
+    <div class="demo-section">
+        <h2>HTTP Methods</h2>
+        <button hx-put="/api/put" hx-target="#http-result" hx-swap="innerHTML">
+            PUT Request
+        </button>
+        <button hx-patch="/api/patch" hx-target="#http-result" hx-swap="innerHTML">
+            PATCH Request
+        </button>
+        <button hx-delete="/api/delete" hx-target="#http-result" hx-swap="innerHTML">
+            DELETE Request
+        </button>
+        <div id="http-result" style="margin-top: 1rem; padding: 1rem; background: rgba(0, 217, 255, 0.1); border-radius: 8px;">
+            <em>HTTP method result will appear here...</em>
+        </div>
+        <p class="note">Uses <code>hx-put</code>, <code>hx-patch</code>, <code>hx-delete</code></p>
+    </div>
+
+    <div class="demo-section">
+        <h2>hx-trigger Modifiers</h2>
+        <div style="margin-bottom: 1rem;">
+            <strong>once (fires only once):</strong><br>
+            <button hx-get="/api/once" hx-target="#once-result" hx-trigger="click once">
+                Click Me (Once)
+            </button>
+            <span id="once-result">Not clicked yet</span>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <strong>changed (fires only when value changes):</strong><br>
+            <input type="text" hx-get="/api/changed" hx-target="#changed-result" hx-trigger="change changed" hx-include="[name=value]" style="padding: 0.5rem;">
+            <span id="changed-result">Waiting for change...</span>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <strong>delay (debounce - 500ms):</strong><br>
+            <input type="text" name="q" hx-get="/api/delay" hx-target="#delay-result" hx-trigger="keyup changed delay:500ms" placeholder="Type to search..." style="padding: 0.5rem;">
+            <span id="delay-result">Waiting...</span>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <strong>throttle (max once per second):</strong><br>
+            <button hx-get="/api/throttle" hx-target="#throttle-result" hx-trigger="click throttle:1s">
+                Click Fast (Throttled)
+            </button>
+            <span id="throttle-result">Waiting...</span>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <strong>from:document (global event):</strong><br>
+            <span>Press any key to trigger: </span>
+            <span hx-get="/api/global-event" hx-target="#global-result" hx-trigger="keyup from:document" style="background: rgba(255,255,255,0.1); padding: 0.3rem 0.6rem; border-radius: 4px;">(waiting)</span>
+            <span id="global-result"> - </span>
+        </div>
+        <p class="note">Uses <code>hx-trigger="once"</code>, <code>changed</code>, <code>delay:500ms</code>, <code>throttle:1s</code>, <code>from:document</code></p>
+    </div>
+
+    <div class="demo-section">
+        <h2>Extended Target Selectors</h2>
+        <div class="target-container" style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <p><strong>Container (closest):</strong> <span id="container-text">Original</span></p>
+            <button hx-get="/api/update-container" hx-target="closest .target-container" hx-swap="outerHTML">
+                Update Container (closest)
+            </button>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <button hx-get="/api/update-next" hx-target="next #next-target" hx-swap="outerHTML">
+                Update Next Element
+            </button>
+            <div id="next-target">This is the next element</div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <div style="display: inline-block; background: rgba(255, 107, 107, 0.1); padding: 1rem; border-radius: 8px;">
+                Parent container
+                <button hx-get="/api/update-find" hx-target="find #find-target" hx-swap="innerHTML">
+                    Update Child (find)
+                </button>
+                <span id="find-target"> - Child element here</span>
+            </div>
+        </div>
+        <p class="note">Uses <code>closest</code>, <code>next</code>, <code>find</code> selectors</p>
+    </div>
+
+    <div class="demo-section">
+        <h2>Swap Modifiers</h2>
+        <p><strong>swap:500ms + scroll:bottom:</strong></p>
+        <button hx-get="/api/scroll-demo" hx-target="#scroll-result" hx-swap="innerHTML swap:500ms scroll:bottom">
+            Add Lines with Animation
+        </button>
+        <div id="scroll-result" style="margin-top: 1rem; padding: 1rem; background: rgba(0, 217, 255, 0.1); border-radius: 8px; height: 150px; overflow-y: auto;">
+            <p>Lines will be added here...</p>
+        </div>
+        <p class="note">Uses <code>swap:500ms</code> for transition and <code>scroll:bottom</code> to auto-scroll</p>
+    </div>
+
+    <!-- ========== End New Sections ========== -->
+
     <div class="demo-section">
         <h2>Implementation Status</h2>
-        <p>✅ <code>hx-get</code> - Fetch content via GET request</p>
-        <p>✅ <code>hx-target</code> - Select target element for content swap</p>
-        <p>✅ <code>hx-swap</code> - Control how content is swapped (innerHTML, outerHTML, beforebegin, etc.)</p>
-        <p>✅ <code>hx-trigger</code> - Custom trigger events (defaults: click/change/submit)</p>
-        <p>⏳ <code>hx-post</code> / <code>hx-put</code> / <code>hx-delete</code> - Other HTTP methods</p>
+        <p>✅ <code>hx-get</code> / <code>hx-post</code> / <code>hx-put</code> / <code>hx-delete</code> / <code>hx-patch</code> - HTTP methods</p>
+        <p>✅ <code>hx-target</code> - Extended selectors (this, closest, find, next, previous)</p>
+        <p>✅ <code>hx-swap</code> - All swap modes + modifiers (swap, settle, scroll, show)</p>
+        <p>✅ <code>hx-trigger</code> - All modifiers (once, changed, delay, throttle, from, queue, filters)</p>
+        <p>✅ <code>hx-select</code> - Extract specific content from response</p>
+        <p>✅ <code>hx-push-url</code> - History API integration</p>
+        <p>✅ <code>hx-swap-oob</code> - Out-of-band swaps (true, innerHTML, outerHTML, delete, custom target)</p>
+        <p>✅ HTML5 Form Validation - required, min, max, pattern + htmx:validation:* events</p>
+        <p>✅ <code>formnovalidate</code> - Skip validation on submit</p>
+        <p>✅ <code>hx-swap="morph"</code> - DOM morphing with state preservation</p>
     </div>
 
     <script type="module">
@@ -213,6 +337,26 @@
         // Load the MoonBit-compiled htmx.mbt
         import './main.js';
         console.log("HTML: Import statement executed. If no 'DEBUG' logs appear, htmx failed to init.");
+
+        // Log validation events
+        const log = document.getElementById('validation-log');
+        if (log) {
+            document.body.addEventListener('htmx:validation:validate', () => {
+                const p = document.createElement('p');
+                p.textContent = '🔍 htmx:validation:validate - Validating form...';
+                log.prepend(p);
+            });
+            document.body.addEventListener('htmx:validation:failed', () => {
+                const p = document.createElement('p');
+                p.textContent = '❌ htmx:validation:failed - Validation failed!';
+                log.prepend(p);
+            });
+            document.body.addEventListener('htmx:validation:halted', () => {
+                const p = document.createElement('p');
+                p.textContent = '🛑 htmx:validation:halted - Request halted due to validation';
+                log.prepend(p);
+            });
+        }
     </script>
 </body>
 
