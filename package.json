@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build:htmx-test": "moon build --target js",
+    "demo": "node cmd/demo/server.js",
     "test:htmx": "pnpm build:htmx-test && pnpm exec wtr --config web-test-runner.config.mjs --concurrency 3",
     "test:coverage": "pnpm build:htmx-test && pnpm exec wtr --config web-test-runner.config.mjs --coverage --concurrency 3",
     "coverage:view": "xdg-open coverage/index.html"

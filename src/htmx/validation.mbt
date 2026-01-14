@@ -27,7 +27,6 @@ extern "js" fn has_hx_validate(el : @dom.Element) -> Bool =
 /// Dispatch htmx:validation:validate event on each input element in form
 extern "js" fn dispatch_validate_events(form : @dom.Element) -> Unit =
   #|(form) => {
-  #|  // Get all form inputs and dispatch validation:validate event on each
   #|  const inputs = form.querySelectorAll('input, select, textarea');
   #|  for (let i = 0; i < inputs.length; i++) {
   #|    const evt = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true });
@@ -79,18 +78,30 @@ extern "js" fn dispatch_validation_failed_event(
   #|}
 
 ///|
-/// Dispatch htmx:validation:failed event on form with errors array
-extern "js" fn dispatch_validation_failed_on_form(
-  form : @dom.Element,
-  errors : @core.Any,
-) -> Bool =
-  #|(form, errors) => {
-  #|  const evt = new CustomEvent('htmx:validation:failed', {
-  #|    bubbles: true,
-  #|    cancelable: true,
-  #|    detail: { errors: errors }
-  #|  });
-  #|  return form.dispatchEvent(evt);
+/// Create errors array and dispatch htmx:validation:failed event in one FFI call
+/// NOTE: This function causes test to hang - disabled for now
+extern "js" fn dispatch_validation_failed_with_array(form : @dom.Element) -> Unit =
+  #|(form) => {
+  #|  const invalids = [];
+  #|  const inputs = form.querySelectorAll('input, select, textarea');
+  #|  for (let i = 0; i < inputs.length; i++) {
+  #|    if (inputs[i].checkValidity && !inputs[i].checkValidity()) {
+  #|      invalids.push(inputs[i]);
+  #|    }
+  #|  }
+  #|  if (invalids.length > 0) {
+  #|    const errors = invalids.map(el => ({
+  #|      elt: el,
+  #|      message: el.validationMessage || '',
+  #|      validity: el.validity || {}
+  #|    }));
+  #|    const evt = new CustomEvent('htmx:validation:failed', {
+  #|      bubbles: true,
+  #|      cancelable: true,
+  #|      detail: { errors: errors }
+  #|    });
+  #|    form.dispatchEvent(evt);
+  #|  }
   #|}
 
 ///|
@@ -180,10 +191,9 @@ pub fn validate_element(element : @dom.Element) -> Bool {
     // Step 2: Check which inputs are now invalid
     let invalids = get_invalid_elements(element)
     if invalids.length() > 0 {
-      // Create errors array for htmx:validation:halted
+      // Step 3: Dispatch htmx:validation:halted
+      // TODO: Fix hang - htmx:validation:failed causes test to hang when also dispatched
       let errors = create_errors_array(invalids)
-
-      // Step 3: Dispatch htmx:validation:halted on the form with errors array
       dispatch_validation_halted(element, errors)
 
       // Report validity if configured
@@ -192,7 +202,6 @@ pub fn validate_element(element : @dom.Element) -> Bool {
         let first = invalids[0]
         focus_element(first)
         let _ = form_report_validity(element)
-
       }
       return false
     }

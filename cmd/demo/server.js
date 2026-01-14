@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
     }
     if (pathname === '/main.js') {
         // MoonBitビルド出力から配信
-        const mainJsPath = path.join(__dirname, '../../target/js/release/build/cmd/main/main.js');
+        const mainJsPath = path.join(__dirname, '../../_build/js/release/build/cmd/main/main.js');
         fs.readFile(mainJsPath, (err, data) => {
             if (err) { res.writeHead(500); res.end('Error loading main.js: ' + err.message); }
             else { res.writeHead(200, { 'Content-Type': 'text/javascript' }); res.end(data); }
