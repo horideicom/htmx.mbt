@@ -850,24 +850,14 @@ extern "js" fn process_element_with_delay(
   #|  data.delayTimer = setTimeout(() => {
   #|    // Mark as processing (so handle_click knows this is the delayed trigger)
   #|    data.delayProcessing = true;
-  #|
-  #|    // Set currentEvent for vars.mbt to access
-  #|    data.currentEvent = event;
-  #|
   #|    // Trigger the click event which will call process_element_with_trigger
+  #|    // The event is still stored in data.delayEvent for hx-vals evaluation
   #|    const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
   #|    element.dispatchEvent(clickEvent);
-  #|
   #|    // Clean up after the event has been dispatched
   #|    data.delayTimer = null;
   #|    data.delayPending = false;
   #|    data.delayProcessing = false;
-  #|
-  #|    // Clear currentEvent after event is processed
-  #|    setTimeout(() => {
-  #|      data.currentEvent = null;
-  #|      data.delayEvent = null;
-  #|    }, 0);
   #|  }, delay_ms);
   #|}
 

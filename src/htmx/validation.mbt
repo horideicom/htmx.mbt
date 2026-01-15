@@ -33,8 +33,12 @@ extern "js" fn dispatch_validate_events(form : @dom.Element) -> Unit =
   #|      elt: inputs[i],
   #|      validity: inputs[i].validity || {}
   #|    };
-  #|    const evt = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true, detail: detail });
-  #|    inputs[i].dispatchEvent(evt);
+  #|    // Dispatch kebab-case version
+  #|    const evt1 = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true, detail: detail });
+  #|    inputs[i].dispatchEvent(evt1);
+  #|    // Dispatch camelCase version (same name - no hyphens)
+  #|    const evt2 = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true, detail: detail });
+  #|    inputs[i].dispatchEvent(evt2);
   #|  }
   #|}
 
@@ -46,8 +50,12 @@ extern "js" fn dispatch_validate_event(el : @dom.Element) -> Unit =
   #|    elt: el,
   #|    validity: el.validity || {}
   #|  };
-  #|  const evt = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true, detail: detail });
-  #|  el.dispatchEvent(evt);
+  #|  // Dispatch kebab-case version
+  #|  const evt1 = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true, detail: detail });
+  #|  el.dispatchEvent(evt1);
+  #|  // Dispatch camelCase version (same name - no hyphens)
+  #|  const evt2 = new CustomEvent('htmx:validation:validate', { bubbles: true, cancelable: true, detail: detail });
+  #|  el.dispatchEvent(evt2);
   #|}
 
 ///|
@@ -79,12 +87,20 @@ extern "js" fn dispatch_validation_failed_on_element(el : @dom.Element) -> Unit 
   #|    message: el.validationMessage || '',
   #|    validity: el.validity || {}
   #|  };
-  #|  const evt = new CustomEvent('htmx:validation:failed', {
+  #|  // Dispatch kebab-case version
+  #|  const evt1 = new CustomEvent('htmx:validation:failed', {
   #|    bubbles: true,
   #|    cancelable: true,
   #|    detail: detail
   #|  });
-  #|  el.dispatchEvent(evt);
+  #|  el.dispatchEvent(evt1);
+  #|  // Dispatch camelCase version (same name - no hyphens)
+  #|  const evt2 = new CustomEvent('htmx:validation:failed', {
+  #|    bubbles: true,
+  #|    cancelable: true,
+  #|    detail: detail
+  #|  });
+  #|  el.dispatchEvent(evt2);
   #|}
 
 ///|
@@ -102,12 +118,22 @@ extern "js" fn dispatch_validation_failed_events(
   #|      message: invalid.validationMessage || '',
   #|      validity: invalid.validity || {}
   #|    };
-  #|    const evt = new CustomEvent('htmx:validation:failed', {
+  #|    // Dispatch kebab-case version
+  #|    const evt1 = new CustomEvent('htmx:validation:failed', {
   #|      bubbles: true,
   #|      cancelable: true,
   #|      detail: detail
   #|    });
-  #|    if (!invalid.dispatchEvent(evt)) {
+  #|    const result1 = invalid.dispatchEvent(evt1);
+  #|    // Dispatch camelCase version (same name - no hyphens)
+  #|    const evt2 = new CustomEvent('htmx:validation:failed', {
+  #|      bubbles: true,
+  #|      cancelable: true,
+  #|      detail: detail
+  #|    });
+  #|    const result2 = invalid.dispatchEvent(evt2);
+  #|    // If either event was prevented, mark as prevented
+  #|    if (!result1 || !result2) {
   #|      validationPrevented = true;
   #|    }
   #|  }
@@ -121,12 +147,22 @@ extern "js" fn dispatch_validation_failed_event(
   detail : @core.Any,
 ) -> Bool =
   #|(target, detail) => {
-  #|  const evt = new CustomEvent('htmx:validation:failed', {
+  #|  // Dispatch kebab-case version
+  #|  const evt1 = new CustomEvent('htmx:validation:failed', {
   #|    bubbles: true,
   #|    cancelable: true,
   #|    detail: detail
   #|  });
-  #|  return target.dispatchEvent(evt);
+  #|  const result1 = target.dispatchEvent(evt1);
+  #|  // Dispatch camelCase version (same name - no hyphens)
+  #|  const evt2 = new CustomEvent('htmx:validation:failed', {
+  #|    bubbles: true,
+  #|    cancelable: true,
+  #|    detail: detail
+  #|  });
+  #|  const result2 = target.dispatchEvent(evt2);
+  #|  // Return true only if neither event was prevented
+  #|  return result1 && result2;
   #|}
 
 ///|
@@ -136,12 +172,21 @@ extern "js" fn dispatch_validation_halted(
   errors : @core.Any,
 ) -> Unit =
   #|(form, errors) => {
-  #|  const evt = new CustomEvent('htmx:validation:halted', {
+  #|  const detail = { errors: errors };
+  #|  // Dispatch kebab-case version
+  #|  const evt1 = new CustomEvent('htmx:validation:halted', {
   #|    bubbles: true,
   #|    cancelable: true,
-  #|    detail: { errors: errors }
+  #|    detail: detail
   #|  });
-  #|  form.dispatchEvent(evt);
+  #|  form.dispatchEvent(evt1);
+  #|  // Dispatch camelCase version (same name - no hyphens)
+  #|  const evt2 = new CustomEvent('htmx:validation:halted', {
+  #|    bubbles: true,
+  #|    cancelable: true,
+  #|    detail: detail
+  #|  });
+  #|  form.dispatchEvent(evt2);
   #|}
 
 ///|
