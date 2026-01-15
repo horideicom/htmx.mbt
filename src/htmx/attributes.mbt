@@ -624,7 +624,7 @@ fn find_inherited_attribute(
   attr_name : String,
 ) -> String? {
   match get_parent_element(element) {
-    Some(parent) => {
+    Some(parent) =>
       // Check if parent has the attribute
       match parent.getAttribute(attr_name) {
         Some(value) => Some(value)
@@ -637,7 +637,6 @@ fn find_inherited_attribute(
           }
         }
       }
-    }
     Option::None => Option::None
   }
 }
@@ -649,7 +648,7 @@ fn find_inherited_attribute_with_check(
   attr_name : String,
 ) -> String? {
   match get_parent_element(element) {
-    Some(parent) => {
+    Some(parent) =>
       // Check if parent has hx-inherit
       match get_hx_inherit(parent) {
         Some(inherit_value) => {
@@ -657,7 +656,6 @@ fn find_inherited_attribute_with_check(
           let inherit_array = parse_hx_inherit(inherit_value)
           let inherits_all = check_inherits_all(inherit_array)
           let inherits_this = check_includes_attribute(inherit_array, attr_name)
-
           if inherits_all || inherits_this {
             // Parent allows inheriting this attribute
             match parent.getAttribute(attr_name) {
@@ -667,7 +665,8 @@ fn find_inherited_attribute_with_check(
                 let data_attr = with_data_prefix(attr_name)
                 match parent.getAttribute(data_attr) {
                   Some(value) => Some(value)
-                  Option::None => find_inherited_attribute_with_check(parent, attr_name)
+                  Option::None =>
+                    find_inherited_attribute_with_check(parent, attr_name)
                 }
               }
             }
@@ -678,7 +677,6 @@ fn find_inherited_attribute_with_check(
         }
         Option::None => find_inherited_attribute_with_check(parent, attr_name)
       }
-    }
     Option::None => Option::None
   }
 }
@@ -707,26 +705,22 @@ pub fn get_target_with_inherit(element : @dom.Element) -> @dom.Element {
     Some(selector) => Some(selector)
     Option::None => element.getAttribute(with_data_prefix(target_attr))
   }
-
   match result {
-    Some(selector) => {
+    Some(selector) =>
       match parse_extended_target(element, selector) {
         Some(target) => target
         None => element
       }
-    }
-    None => {
+    None =>
       // Try to inherit hx-target from parent
       match should_inherit_attribute(element, target_attr) {
-        Some(inherited_selector) => {
+        Some(inherited_selector) =>
           match parse_extended_target(element, inherited_selector) {
             Some(target) => target
             None => element
           }
-        }
         None => element
       }
-    }
   }
 }
 
@@ -736,17 +730,15 @@ pub fn get_swap_style_with_inherit(element : @dom.Element) -> SwapStyle {
   let swap_attr = hx_swap()
   match element.getAttribute(swap_attr) {
     Some(value) => SwapStyle::parse(value)
-    Option::None => {
+    Option::None =>
       match element.getAttribute(with_data_prefix(swap_attr)) {
         Some(value) => SwapStyle::parse(value)
-        Option::None => {
+        Option::None =>
           // Try to inherit hx-swap from parent
           match should_inherit_attribute(element, swap_attr) {
             Some(inherited_value) => SwapStyle::parse(inherited_value)
             None => SwapStyle::InnerHTML
           }
-        }
       }
-    }
   }
 }

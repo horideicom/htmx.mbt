@@ -159,10 +159,7 @@ extern "js" fn append_vars_to_form_data(
 
 ///|
 /// Append hx-vars values to URL query string (vars override form values)
-extern "js" fn append_vars_to_url(
-  url : String,
-  vars_map : @core.Any,
-) -> String =
+extern "js" fn append_vars_to_url(url : String, vars_map : @core.Any) -> String =
   #|(url, vars_map) => {
   #|  // vars_map is a MoonBit Map with { buf: [{_0: key, _1: value}, ...], start, end }
   #|  let params = [];
@@ -183,7 +180,9 @@ extern "js" fn append_vars_to_url(
 
 ///|
 /// Create FormData from vars_map
-extern "js" fn create_form_data_from_vars(vars_map : @core.Any) -> @http.FormData =
+extern "js" fn create_form_data_from_vars(
+  vars_map : @core.Any,
+) -> @http.FormData =
   #|(vars_map) => {
   #|  const fd = new FormData();
   #|  // vars_map is a MoonBit Map with { buf: [{_0: key, _1: value}, ...], start, end }

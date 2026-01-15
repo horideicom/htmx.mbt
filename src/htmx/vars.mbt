@@ -4,7 +4,10 @@
 ///|
 /// Get all expression vars (hx-vars + hx-vals combined) from an element
 /// Returns a Map that can be converted to @core.Any for FFI
-pub fn get_expression_vars(elt : @dom.Element?, event : @core.Any?) -> Map[String, String] {
+pub fn get_expression_vars(
+  elt : @dom.Element?,
+  event : @core.Any?,
+) -> Map[String, String] {
   get_expression_vars_inner(elt, event)
 }
 
