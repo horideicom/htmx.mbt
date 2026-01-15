@@ -133,3 +133,149 @@ pub fn append_query_string(url : String, query : String) -> String {
     "\{url}?\{query}"
   }
 }
+
+///|
+/// Append hx-vars values to FormData (vars override form values)
+extern "js" fn append_vars_to_form_data(
+  form_data : @http.FormData,
+  vars_map : @core.Any,
+) -> Unit =
+  #|(form_data, vars_map) => {
+  #|  // vars_map is a MoonBit Map with { buf: [{_0: key, _1: value}, ...], start, end }
+  #|  if (vars_map && vars_map.buf) {
+  #|    for (let i = vars_map.start || 0; i < (vars_map.end || vars_map.buf.length); i++) {
+  #|      const entry = vars_map.buf[i];
+  #|      if (entry && entry._0 !== undefined) {
+  #|        const key = entry._0;
+  #|        const value = entry._1;
+  #|        // Remove existing value (vars override form values)
+  #|        form_data.delete(key);
+  #|        // Add the vars value
+  #|        form_data.append(key, value);
+  #|      }
+  #|    }
+  #|  }
+  #|}
+
+///|
+/// Append hx-vars values to URL query string (vars override form values)
+extern "js" fn append_vars_to_url(
+  url : String,
+  vars_map : @core.Any,
+) -> String =
+  #|(url, vars_map) => {
+  #|  // vars_map is a MoonBit Map with { buf: [{_0: key, _1: value}, ...], start, end }
+  #|  let params = [];
+  #|  if (vars_map && vars_map.buf) {
+  #|    for (let i = vars_map.start || 0; i < (vars_map.end || vars_map.buf.length); i++) {
+  #|      const entry = vars_map.buf[i];
+  #|      if (entry && entry._0 !== undefined) {
+  #|        const key = encodeURIComponent(entry._0);
+  #|        const value = encodeURIComponent(entry._1);
+  #|        params.push(key + '=' + value);
+  #|      }
+  #|    }
+  #|  }
+  #|  if (params.length === 0) return url;
+  #|  const separator = url.includes('?') ? '&' : '?';
+  #|  return url + separator + params.join('&');
+  #|}
+
+///|
+/// Create FormData from vars_map
+extern "js" fn create_form_data_from_vars(vars_map : @core.Any) -> @http.FormData =
+  #|(vars_map) => {
+  #|  const fd = new FormData();
+  #|  // vars_map is a MoonBit Map with { buf: [{_0: key, _1: value}, ...], start, end }
+  #|  if (vars_map && vars_map.buf) {
+  #|    for (let i = vars_map.start || 0; i < (vars_map.end || vars_map.buf.length); i++) {
+  #|      const entry = vars_map.buf[i];
+  #|      if (entry && entry._0 !== undefined) {
+  #|        fd.append(entry._0, entry._1);
+  #|      }
+  #|    }
+  #|  }
+  #|  return fd;
+  #|}
+
+///|
+/// Create FormData from input values and vars (vars override input values)
+extern "js" fn create_form_data_from_inputs_and_vars(
+  element : @dom.Element,
+  vars_map : @core.Any,
+) -> @http.FormData =
+  #|(element, vars_map) => {
+  #|  const fd = new FormData();
+  #|
+  #|  // Collect input values from element
+  #|  // First, check if element itself is an input/select/textarea
+  #|  const tag = element.tagName.toUpperCase();
+  #|  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+  #|    const name = element.getAttribute('name');
+  #|    if (name && name.length > 0) {
+  #|      let value = null;
+  #|      if (tag === 'INPUT') {
+  #|        const type = element.getAttribute('type') || 'text';
+  #|        if (type === 'checkbox' || type === 'radio') {
+  #|          if (element.checked) {
+  #|            value = element.value || 'on';
+  #|          }
+  #|        } else if (type !== 'file') {
+  #|          value = element.value || '';
+  #|        }
+  #|      } else {
+  #|        value = element.value || '';
+  #|      }
+  #|      if (value !== null) {
+  #|        fd.append(name, value);
+  #|      }
+  #|    }
+  #|  }
+  #|
+  #|  // Then collect from child elements
+  #|  const inputs = element.querySelectorAll('input, select, textarea');
+  #|  for (const input of inputs) {
+  #|    const name = input.getAttribute('name');
+  #|    if (name && name.length > 0) {
+  #|      let value = null;
+  #|      const tag = input.tagName.toUpperCase();
+  #|      if (tag === 'INPUT') {
+  #|        const type = input.getAttribute('type') || 'text';
+  #|        if (type === 'checkbox' || type === 'radio') {
+  #|          if (input.checked) {
+  #|            value = input.value || 'on';
+  #|          }
+  #|        } else if (type === 'file') {
+  #|          // Skip file inputs
+  #|          continue;
+  #|        } else {
+  #|          value = input.value || '';
+  #|        }
+  #|      } else if (tag === 'SELECT') {
+  #|        value = input.value || '';
+  #|      } else if (tag === 'TEXTAREA') {
+  #|        value = input.value || '';
+  #|      }
+  #|      if (value !== null) {
+  #|        fd.append(name, value);
+  #|      }
+  #|    }
+  #|  }
+  #|
+  #|  // Add vars values (vars override input values)
+  #|  if (vars_map && vars_map.buf) {
+  #|    for (let i = vars_map.start || 0; i < (vars_map.end || vars_map.buf.length); i++) {
+  #|      const entry = vars_map.buf[i];
+  #|      if (entry && entry._0 !== undefined) {
+  #|        const key = entry._0;
+  #|        const value = entry._1;
+  #|        // Remove existing value (vars override input values)
+  #|        fd.delete(key);
+  #|        // Add the vars value
+  #|        fd.append(key, value);
+  #|      }
+  #|    }
+  #|  }
+  #|
+  #|  return fd;
+  #|}

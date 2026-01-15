@@ -80,17 +80,38 @@ fn process_element_with_trigger(
     element, target, swap_style_str, url, disabled_elements, indicator_elements,
   )
 
+  // Collect hx-vars/hx-vals from element and parents
+  let expression_vars = get_expression_vars(Some(element), None)
+
   // Handle form data for POST/PUT/PATCH vs GET/DELETE
   if http_method.has_body() {
     // Collect form data for methods that have a body
     let form_data = get_form_data(element)
-    request_with_form_async(
-      url,
-      http_method,
-      form_data,
-      Some(element),
-      callback,
-    )
+    // Append hx-vars values (vars override form values)
+    match form_data {
+      Some(fd) => {
+        append_vars_to_form_data(fd, map_to_any(expression_vars))
+        request_with_form_async(
+          url,
+          http_method,
+          Some(fd),
+          Some(element),
+          callback,
+        )
+      }
+      None => {
+        // No form data, collect input values and create FormData with vars
+        let vars_any = map_to_any(expression_vars)
+        let form_data_with_inputs = create_form_data_from_inputs_and_vars(element, vars_any)
+        request_with_form_async(
+          url,
+          http_method,
+          Some(form_data_with_inputs),
+          Some(element),
+          callback,
+        )
+      }
+    }
   } else {
     // For GET/DELETE, append form values as query params
     let actual_url = match get_form_data(element) {
@@ -98,10 +119,14 @@ fn process_element_with_trigger(
         // Collect values and append to URL
         let values = collect_input_values(element)
         let query = values_to_query_string(values)
-        let _ = fd // We don't use FormData for GET, just values
-        append_query_string(url, query)
+        let base_url = append_query_string(url, query)
+        // Append hx-vars values (vars override form values)
+        append_vars_to_url(base_url, map_to_any(expression_vars))
       }
-      None => url
+      None => {
+        // No form data, just append vars
+        append_vars_to_url(url, map_to_any(expression_vars))
+      }
     }
     request_async(actual_url, http_method, Some(element), callback)
   }
