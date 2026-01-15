@@ -45,7 +45,6 @@ extern "js" fn get_expression_vars_inner(
   #|      str = '{' + str + '}';
   #|    }
   #|
-  #|    console.log('[htmx.mbt VARS] evaluateAttribute: str=', str, 'event=', event);
   #|    try {
   #|      let result;
   #|      if (event) {
@@ -54,7 +53,6 @@ extern "js" fn get_expression_vars_inner(
   #|      } else {
   #|        result = new Function('return (' + str + ')').call(elt);
   #|      }
-  #|      console.log('[htmx.mbt VARS] evaluateAttribute result:', result);
   #|      return result;
   #|    } catch (e) {
   #|      console.error('htmx.mbt: Error evaluating vars:', e, 'str:', str);
@@ -94,7 +92,6 @@ extern "js" fn get_expression_vars_inner(
   #|
   #|    // Then, process current element (child values override parent values)
   #|    const attributeValue = getAttributeValue(elt, attr);
-  #|    console.log('[htmx.mbt VARS] process element:', elt, 'attr:', attr, 'attributeValue:', attributeValue);
   #|    if (attributeValue) {
   #|      let str = attributeValue.trim();
   #|      let evaluateValue = evalAsDefault;
@@ -120,7 +117,6 @@ extern "js" fn get_expression_vars_inner(
   #|      }
   #|
   #|      // Check if evaluation is allowed
-  #|      console.log('[htmx.mbt VARS] element:', elt, 'attr:', attr, 'str:', str, 'evaluateValue:', evaluateValue);
   #|      if (evaluateValue && !allowEval) {
   #|        // Trigger evalDisallowedError event
   #|        const errorEvt = new CustomEvent('htmx:evalDisallowedError', {
@@ -138,7 +134,6 @@ extern "js" fn get_expression_vars_inner(
   #|      } else {
   #|        varsValues = parseAttribute(elt, str);
   #|      }
-  #|      console.log('[htmx.mbt VARS] varsValues:', varsValues);
   #|
   #|      // Child values override parent values
   #|      if (varsValues) {
@@ -164,13 +159,21 @@ extern "js" fn get_expression_vars_inner(
   #|  // Merge vars and vals, with vals taking precedence
   #|  const result = { ...vars, ...vals };
   #|
-  #|  console.log('[htmx.mbt VARS] result:', JSON.stringify(result));
-  #|
   #|  // Convert to MoonBit Map format
   #|  const entries = Object.entries(result);
   #|  const buf = [];
   #|  for (const [k, v] of entries) {
-  #|    buf.push({ _0: k, _1: String(v) });
+  #|    let strValue;
+  #|    // Convert objects to JSON string, other values to string
+  #|    // null becomes 'null' string for compatibility
+  #|    if (v === null) {
+  #|      strValue = 'null';
+  #|    } else if (typeof v === 'object') {
+  #|      strValue = JSON.stringify(v);
+  #|    } else {
+  #|      strValue = String(v);
+  #|    }
+  #|    buf.push({ _0: k, _1: strValue });
   #|  }
   #|  return { buf: buf, start: 0, end: buf.length };
   #|}

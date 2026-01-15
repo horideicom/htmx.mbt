@@ -10,11 +10,25 @@ extern "js" fn values_to_js_object(
 ) -> @core.Any =
   #|(values) => {
   #|  const obj = {};
+  #|  // Handle both MoonBit Array structure and plain JavaScript array
   #|  if (values && values.buf) {
+  #|    // MoonBit Array structure
   #|    for (let i = values.start || 0; i < (values.end || values.buf.length); i++) {
   #|      const entry = values.buf[i];
-  #|      if (entry && entry._0 !== undefined) {
-  #|        obj[entry._0] = entry._1;
+  #|      // Handle both { _0: key, _1: value } and [key, value] formats
+  #|      if (entry) {
+  #|        const key = entry._0 !== undefined ? entry._0 : (entry[0] !== undefined ? entry[0] : null);
+  #|        const val = entry._1 !== undefined ? entry._1 : (entry[1] !== undefined ? entry[1] : null);
+  #|        if (key !== null) {
+  #|          obj[key] = val;
+  #|        }
+  #|      }
+  #|    }
+  #|  } else if (Array.isArray(values)) {
+  #|    // Plain JavaScript array
+  #|    for (const entry of values) {
+  #|      if (entry && entry.length >= 2) {
+  #|        obj[entry[0]] = entry[1];
   #|      }
   #|    }
   #|  }
@@ -56,6 +70,7 @@ extern "js" fn js_object_to_map(obj : @core.Any) -> Map[String, String] =
 fn process_element_with_trigger(
   element : @dom.Element,
   trigger_el : @dom.Element?,
+  event : @core.Any?,
 ) -> Unit {
   let trigger_tag = match trigger_el {
     Some(el) => el.tagName()
@@ -166,7 +181,7 @@ fn process_element_with_trigger(
   )
 
   // Collect hx-vars/hx-vals from element and parents
-  let expression_vars = get_expression_vars(Some(element), None)
+  let expression_vars = get_expression_vars(Some(element), event)
 
   // Fire htmx:config-request event to allow modification of parameters
   // Collect input values for the event
@@ -689,21 +704,52 @@ extern "js" fn create_response_callback(
 
 ///|
 /// Wrapper for process element (kept for API compatibility)
-fn process_element(element : @dom.Element) -> Unit {
-  process_element_with_trigger(element, None)
+fn process_element(element : @dom.Element, event : @core.Any?) -> Unit {
+  process_element_with_trigger(element, None, event)
 }
 
 ///|
-/// FFI to get event target directly
+/// Find the first element with htmx method attributes in the event path
+/// This ensures we prioritize the clicked element over its parents
 extern "js" fn get_event_target(evt : @core.Any) -> @dom.Element =
   #|(evt) => {
+  #|  // Helper function to check if element has htmx method attributes
+  #|  const hasHtmxMethod = (el) => {
+  #|    if (!el || !el.getAttribute) return false;
+  #|    const methods = ['hx-get', 'hx-post', 'hx-put', 'hx-delete', 'hx-patch'];
+  #|    for (const method of methods) {
+  #|      if (el.hasAttribute(method) || el.hasAttribute('data-' + method)) {
+  #|        return true;
+  #|      }
+  #|    }
+  #|    return false;
+  #|  };
+  #|
+  #|  // Try composedPath first - gives us the event propagation path
   #|  if (evt && typeof evt.composedPath === 'function') {
   #|    const path = evt.composedPath();
-  #|    if (path && path.length > 0 && path[0] && path[0].nodeType === 1) {
-  #|      return path[0];
+  #|    if (path && path.length > 0) {
+  #|      // Walk the path from target (first) to root (last)
+  #|      for (let i = 0; i < path.length; i++) {
+  #|        const el = path[i];
+  #|        if (el && el.nodeType === 1) {  // ELEMENT_NODE
+  #|          // Check if this element has htmx method attributes
+  #|          if (hasHtmxMethod(el)) {
+  #|            return el;
+  #|          }
+  #|        }
+  #|      }
   #|    }
   #|  }
-  #|  return evt.target;
+  #|
+  #|  // Fallback to evt.target if composedPath didn't work or no htmx element found
+  #|  const target = evt.target;
+  #|  if (target && target.nodeType === 1) {
+  #|    return target;
+  #|  }
+  #|
+  #|  // Last resort: return null or undefined
+  #|  return target;
   #|}
 
 ///|
@@ -749,7 +795,7 @@ fn handle_click(evt : @core.Any) -> Unit {
               // not explicit user action of clicking a submit button
               event.preventDefault()
               // Pass the button as submitter for formnovalidate check
-              process_element_with_trigger(form, Some(target_el))
+              process_element_with_trigger(form, Some(target_el), Some(evt))
               return
             }
             None => ()
@@ -771,7 +817,7 @@ fn handle_click(evt : @core.Any) -> Unit {
       let trigger = get_trigger_event(htmx_el)
       if trigger == "click" || trigger == "load" {
         event.preventDefault()
-        process_element_with_trigger(htmx_el, Some(target_el))
+        process_element_with_trigger(htmx_el, Some(target_el), Some(evt))
       }
     }
     Option::None => ()
@@ -788,7 +834,7 @@ fn handle_change(evt : @core.Any) -> Unit {
       let trigger = get_trigger_event(htmx_el)
       if trigger == "change" {
         event.preventDefault()
-        process_element(htmx_el)
+        process_element(htmx_el, Some(evt))
       }
     }
     Option::None => ()
@@ -812,7 +858,7 @@ fn handle_submit(evt : @core.Any) -> Unit {
       if trigger == "submit" {
         event.preventDefault()
         // Pass submitter for formnovalidate check
-        process_element_with_trigger(htmx_el, submitter)
+        process_element_with_trigger(htmx_el, submitter, Some(evt))
       }
     }
     Option::None => ()
