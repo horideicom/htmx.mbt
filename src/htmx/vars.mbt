@@ -35,83 +35,82 @@ extern "js" fn get_expression_vars_inner(
   #|    return el.getAttribute(attr) || el.getAttribute('data-' + attr);
   #|  };
   #|
-  #|  // Parse and evaluate hx-vars/hx-vals attribute value
-  #|  const parseVarsValue = (elt, attrValue, evaluate) => {
-  #|    let str = attrValue ? attrValue.trim() : '';
-  #|    let evaluateValue = evaluate;
+  #|  // Check if allowEval is enabled
+  #|  const allowEval = window.htmx && window.htmx.config && window.htmx.config.allowEval !== false;
   #|
-  #|    // Check for 'unset' keyword
-  #|    if (str === 'unset') {
-  #|      return null;
-  #|    }
-  #|
-  #|    // Check for javascript: or js: prefix
-  #|    if (str.indexOf('javascript:') === 0) {
-  #|      str = str.slice(11);
-  #|      evaluateValue = true;
-  #|    } else if (str.indexOf('js:') === 0) {
-  #|      str = str.slice(3);
-  #|      evaluateValue = true;
-  #|    }
-  #|
+  #|  // Evaluate attribute value as JavaScript object literal
+  #|  const evaluateAttribute = (elt, str, event) => {
   #|    // Wrap in braces if not already present
   #|    if (str.indexOf('{') !== 0) {
   #|      str = '{' + str + '}';
   #|    }
   #|
-  #|    let varsValues;
-  #|    if (evaluateValue) {
-  #|      // Check if allowEval is enabled
-  #|      const allowEval = window.htmx && window.htmx.config && window.htmx.config.allowEval !== false;
-  #|      if (!allowEval) {
-  #|        // Trigger evalDisallowedError event
-  #|        const errorEvt = new CustomEvent('htmx:evalDisallowedError', {
-  #|          bubbles: true,
-  #|          cancelable: true,
-  #|          detail: { source: 'hx-vars' }
-  #|        });
-  #|        elt.dispatchEvent(errorEvt);
-  #|        return {};
+  #|    console.log('[htmx.mbt VARS] evaluateAttribute: str=', str, 'event=', event);
+  #|    try {
+  #|      let result;
+  #|      if (event) {
+  #|        const evt = (event && event.$tag === 1) ? event._0 : event;
+  #|        result = new Function('event', 'return (' + str + ')').call(elt, evt);
+  #|      } else {
+  #|        result = new Function('return (' + str + ')').call(elt);
   #|      }
-  #|      try {
-  #|        if (event) {
-  #|          // Unwrap event Option if needed
-  #|          const evt = (event && event.$tag === 1) ? event._0 : event;
-  #|          varsValues = new Function('event', 'return (' + str + ')').call(elt, evt);
-  #|        } else {
-  #|          varsValues = new Function('return (' + str + ')').call(elt);
-  #|        }
-  #|      } catch (e) {
-  #|        console.error('htmx.mbt: Error evaluating vars:', e);
-  #|        return {};
-  #|      }
-  #|    } else {
-  #|      try {
-  #|        varsValues = JSON.parse(str);
-  #|      } catch (e) {
-  #|        console.error('htmx.mbt: Error parsing vars JSON:', e);
-  #|        return {};
-  #|      }
+  #|      console.log('[htmx.mbt VARS] evaluateAttribute result:', result);
+  #|      return result;
+  #|    } catch (e) {
+  #|      console.error('htmx.mbt: Error evaluating vars:', e, 'str:', str);
+  #|      return {};
+  #|    }
+  #|  };
+  #|
+  #|  // Parse attribute value as JSON
+  #|  const parseAttribute = (elt, str) => {
+  #|    // Wrap in braces if not already present
+  #|    if (str.indexOf('{') !== 0) {
+  #|      str = '{' + str + '}';
   #|    }
   #|
-  #|    return varsValues || {};
+  #|    try {
+  #|      return JSON.parse(str);
+  #|    } catch (e) {
+  #|      console.error('htmx.mbt: Error parsing vars JSON:', e);
+  #|      return {};
+  #|    }
   #|  };
   #|
   #|  // Collect values from hx-vars or hx-vals attribute on element and its parents
-  #|  const getValuesForElement = (elt, attr, evalAsDefault, values, event) => {
+  #|  const getValuesForElement = (elt, attr, evalAsDefault, values) => {
   #|    if (values == null) {
   #|      values = {};
   #|    }
   #|    if (elt == null) {
   #|      return values;
   #|    }
+  #|
+  #|    // First, collect from parent (so parent values come first)
+  #|    const parent = elt.parentElement;
+  #|    if (parent) {
+  #|      getValuesForElement(parent, attr, evalAsDefault, values);
+  #|    }
+  #|
+  #|    // Then, process current element (child values override parent values)
   #|    const attributeValue = getAttributeValue(elt, attr);
+  #|    console.log('[htmx.mbt VARS] process element:', elt, 'attr:', attr, 'attributeValue:', attributeValue);
   #|    if (attributeValue) {
   #|      let str = attributeValue.trim();
   #|      let evaluateValue = evalAsDefault;
+  #|
+  #|      // Check for 'unset' keyword
   #|      if (str === 'unset') {
-  #|        return null;
+  #|        // Clear all values - 'unset' removes all inherited vars
+  #|        for (const key in values) {
+  #|          if (values.hasOwnProperty(key)) {
+  #|            delete values[key];
+  #|          }
+  #|        }
+  #|        return values;
   #|      }
+  #|
+  #|      // Check for javascript: or js: prefix (forces evaluation)
   #|      if (str.indexOf('javascript:') === 0) {
   #|        str = str.slice(11);
   #|        evaluateValue = true;
@@ -119,27 +118,36 @@ extern "js" fn get_expression_vars_inner(
   #|        str = str.slice(3);
   #|        evaluateValue = true;
   #|      }
-  #|      if (str.indexOf('{') !== 0) {
-  #|        str = '{' + str + '}';
+  #|
+  #|      // Check if evaluation is allowed
+  #|      console.log('[htmx.mbt VARS] element:', elt, 'attr:', attr, 'str:', str, 'evaluateValue:', evaluateValue);
+  #|      if (evaluateValue && !allowEval) {
+  #|        // Trigger evalDisallowedError event
+  #|        const errorEvt = new CustomEvent('htmx:evalDisallowedError', {
+  #|          bubbles: true,
+  #|          cancelable: true,
+  #|          detail: { source: attr }
+  #|        });
+  #|        elt.dispatchEvent(errorEvt);
+  #|        return values;
   #|      }
+  #|
   #|      let varsValues;
   #|      if (evaluateValue) {
-  #|        varsValues = parseVarsValue(elt, str, true);
+  #|        varsValues = evaluateAttribute(elt, str, event);
   #|      } else {
-  #|        varsValues = parseVarsValue(elt, str, false);
+  #|        varsValues = parseAttribute(elt, str);
   #|      }
-  #|      for (const key in varsValues) {
-  #|        if (varsValues.hasOwnProperty(key)) {
-  #|          if (values[key] == null) {
+  #|      console.log('[htmx.mbt VARS] varsValues:', varsValues);
+  #|
+  #|      // Child values override parent values
+  #|      if (varsValues) {
+  #|        for (const key in varsValues) {
+  #|          if (varsValues.hasOwnProperty(key)) {
   #|            values[key] = varsValues[key];
   #|          }
   #|        }
   #|      }
-  #|    }
-  #|    // Continue to parent
-  #|    const parent = elt.parentElement;
-  #|    if (parent) {
-  #|      return getValuesForElement(parent, attr, evalAsDefault, values, event);
   #|    }
   #|    return values;
   #|  };
@@ -149,12 +157,14 @@ extern "js" fn get_expression_vars_inner(
   #|  let vals = {};
   #|
   #|  if (element) {
-  #|    vars = getValuesForElement(element, 'hx-vars', true, {}, event) || {};
-  #|    vals = getValuesForElement(element, 'hx-vals', false, {}, event) || {};
+  #|    vars = getValuesForElement(element, 'hx-vars', true, {}) || {};
+  #|    vals = getValuesForElement(element, 'hx-vals', false, {}) || {};
   #|  }
   #|
   #|  // Merge vars and vals, with vals taking precedence
   #|  const result = { ...vars, ...vals };
+  #|
+  #|  console.log('[htmx.mbt VARS] result:', JSON.stringify(result));
   #|
   #|  // Convert to MoonBit Map format
   #|  const entries = Object.entries(result);
