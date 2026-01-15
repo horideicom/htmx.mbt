@@ -92,8 +92,9 @@ const config = {
     '!test/attributes/hx-ext.js',
     // Skip alphabet tests
     '!test/attributes/hx-on-wildcard.js',
-    // Skip tests that depend on allowEval and hx-vars
-    '!test/attributes/hx-vars.js',
+    // Enable hx-vars tests for TDD
+    // '!test/attributes/hx-vars.js',
+    // Skip tests that depend on allowEval and hx-vals
     '!test/attributes/hx-vals.js',
     // Skip tests that depend on full AJAX/swap implementation
     '!test/attributes/hx-confirm.js',

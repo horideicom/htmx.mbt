@@ -608,13 +608,22 @@ fn should_inherit_attribute(
 ) -> String? {
   // If disableInheritance is false, inheritance is enabled by default
   let disabled = get_disable_inheritance()
+  log_debug_attr("should_inherit_attribute: disabled=" + (match disabled {
+    true => "true"
+    false => "false"
+  }))
   if not(disabled) {
     // Inheritance is enabled by default, check parents
-    return find_inherited_attribute(element, attr_name)
+    let inherited = find_inherited_attribute(element, attr_name)
+    log_debug_attr("should_inherit_attribute: inherited=" + (match inherited {
+      Some(s) => "Some(" + s + ")"
+      None => "None"
+    }))
+    inherited
+  } else {
+    // Inheritance is disabled by default, only inherit if parent has hx-inherit
+    find_inherited_attribute_with_check(element, attr_name)
   }
-
-  // Inheritance is disabled by default, only inherit if parent has hx-inherit
-  find_inherited_attribute_with_check(element, attr_name)
 }
 
 ///|
@@ -623,22 +632,36 @@ fn find_inherited_attribute(
   element : @dom.Element,
   attr_name : String,
 ) -> String? {
+  log_debug_attr("find_inherited_attribute: element=" + element.tagName() + " attr_name=" + attr_name)
   match get_parent_element(element) {
     Some(parent) => {
+      log_debug_attr("find_inherited_attribute: parent=" + parent.tagName())
       // Check if parent has the attribute
       match parent.getAttribute(attr_name) {
-        Some(value) => Some(value)
+        Some(value) => {
+          log_debug_attr("find_inherited_attribute: found attr on parent: " + value)
+          Some(value)
+        }
         Option::None => {
           // Check for data-hx-* prefix
           let data_attr = with_data_prefix(attr_name)
           match parent.getAttribute(data_attr) {
-            Some(value) => Some(value)
-            Option::None => find_inherited_attribute(parent, attr_name)
+            Some(value) => {
+              log_debug_attr("find_inherited_attribute: found data-attr on parent: " + value)
+              Some(value)
+            }
+            Option::None => {
+              log_debug_attr("find_inherited_attribute: no attr found on parent, recursing")
+              find_inherited_attribute(parent, attr_name)
+            }
           }
         }
       }
     }
-    Option::None => Option::None
+    Option::None => {
+      log_debug_attr("find_inherited_attribute: no parent found")
+      Option::None
+    }
   }
 }
 
@@ -719,9 +742,18 @@ pub fn get_target_with_inherit(element : @dom.Element) -> @dom.Element {
       // Try to inherit hx-target from parent
       match should_inherit_attribute(element, target_attr) {
         Some(inherited_selector) => {
-          match parse_extended_target(element, inherited_selector) {
-            Some(target) => target
-            None => element
+          // When inheriting "this" selector, "this" refers to the parent with the attribute
+          // We need to find the parent element that has the attribute and return that
+          if inherited_selector == "this" {
+            match find_element_with_attribute(element, target_attr) {
+              Some(parent_with_attr) => parent_with_attr
+              None => element
+            }
+          } else {
+            match parse_extended_target(element, inherited_selector) {
+              Some(target) => target
+              None => element
+            }
           }
         }
         None => element
@@ -729,6 +761,24 @@ pub fn get_target_with_inherit(element : @dom.Element) -> @dom.Element {
     }
   }
 }
+
+///|
+/// Find the first parent element (including the element itself) that has the given attribute
+extern "js" fn find_element_with_attribute(element : @dom.Element, attr_name : String) -> @dom.Element? =
+  #|(element, attr_name) => {
+  #|  let el = element;
+  #|  while (el) {
+  #|    if (el.hasAttribute && el.hasAttribute(attr_name)) {
+  #|      return { $tag: 1, _0: el };
+  #|    }
+  #|    const dataAttr = 'data-' + attr_name;
+  #|    if (el.hasAttribute && el.hasAttribute(dataAttr)) {
+  #|      return { $tag: 1, _0: el };
+  #|    }
+  #|    el = el.parentElement;
+  #|  }
+  #|  return { $tag: 0 };
+  #|}
 
 ///|
 /// Get swap style with inheritance support

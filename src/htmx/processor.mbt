@@ -9,19 +9,30 @@ fn process_element_with_trigger(
   element : @dom.Element,
   trigger_el : @dom.Element?,
 ) -> Unit {
-  log_debug("process_element_with_trigger called")
+  log_debug("process_element_with_trigger called: element=" + element.tagName())
 
   // Find method and URL
   let method_url = find_method_url(element)
+  log_debug("method_url found: " + (match method_url {
+    Some(_) => "yes"
+    None => "no"
+  }))
   guard method_url is Some((http_method, url)) else { return }
 
   // Validate form before making request (pass trigger element for formnovalidate check)
-  if not(validate_element_with_trigger(element, trigger_el)) {
+  let validation_result = validate_element_with_trigger(element, trigger_el)
+  log_debug("validation_result: " + (match validation_result {
+    true => "passed"
+    false => "failed"
+  }))
+  if not(validation_result) {
     return
   }
 
   // Get target and swap style (with inheritance support)
+  log_debug("About to call get_target_with_inherit on element: " + element.tagName())
   let target = get_target_with_inherit(element)
+  log_debug("Target element: " + target.tagName())
   let swap_style = get_swap_style_with_inherit(element)
   let swap_style_str = swap_style.to_htmx_string()
 
@@ -144,6 +155,7 @@ extern "js" fn create_response_callback(
 ) -> @core.Any =
   #|(element, target, swap_style_str, url, disabled_elements, indicator_elements) => {
   #|  return function(responseText) {
+  #|    console.log('[htmx.mbt CALLBACK] responseText:', responseText, 'target:', target.tagName, 'target.innerHTML:', target.innerHTML);
   #|    // Hide indicators after request
   #|    if (indicator_elements.length > 0) {
   #|      for (const el of indicator_elements) {
@@ -461,6 +473,7 @@ extern "js" fn create_response_callback(
   #|      };
   #|      const doSwap = () => {
   #|        try {
+  #|          console.log('[htmx.mbt SWAP] doSwap called: target.tagName=', target.tagName, 'finalContent=', finalContent, 'swapStyle=', resolvedStyle);
   #|          if (typeof window.makeSettleInfo === 'function') {
   #|            window.makeSettleInfo(target);
   #|          }
@@ -583,6 +596,7 @@ extern "js" fn has_containing_form(el : @dom.Element) -> Bool =
 fn handle_click(evt : @core.Any) -> Unit {
   let event : @event.Event = @core.identity(evt)
   let target_el = get_event_target(evt)
+  log_debug("handle_click: target_el=" + target_el.tagName())
 
   // Check if clicking a submit button inside an htmx form
   if is_submit_button(target_el) {
@@ -607,6 +621,7 @@ fn handle_click(evt : @core.Any) -> Unit {
   // Find htmx element and handle click trigger
   match find_htmx_element(target_el) {
     Some(htmx_el) => {
+      log_debug("handle_click: found htmx_el=" + htmx_el.tagName() + " trigger=" + get_trigger_event(htmx_el))
       let trigger = get_trigger_event(htmx_el)
       if trigger == "click" || trigger == "load" {
         event.preventDefault()
@@ -831,4 +846,52 @@ pub fn htmx_init() -> Unit {
 
   // Process load triggers
   process_load_triggers()
+
+  // Expose htmx.process API for test compatibility
+  init_htmx_process_api()
 }
+
+///|
+/// Initialize htmx.process API for processing dynamically added elements
+extern "js" fn init_htmx_process_api() -> Unit =
+  #|() => {
+  #|  // Initialize window.htmx if it doesn't exist
+  #|  if (!window.htmx) {
+  #|    window.htmx = {};
+  #|  }
+
+  #|  // htmx.process() - Process an element and its children for htmx attributes
+  #|  window.htmx.process = function(element) {
+  #|    if (!element) return;
+
+  #|    // Process the element itself for load triggers
+  #|    const trigger = element.getAttribute('hx-trigger') || element.getAttribute('data-hx-trigger');
+  #|    if (trigger) {
+  #|      const parts = trigger.split(',').map(s => s.trim());
+  #|      for (const part of parts) {
+  #|        if (part === 'load' || part.startsWith('load ')) {
+  #|          // Trigger load event
+  #|          const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+  #|          element.dispatchEvent(event);
+  #|          break;
+  #|        }
+  #|      }
+  #|    }
+
+  #|    // Process all descendants with hx-trigger
+  #|    const elements = element.querySelectorAll('[hx-trigger], [data-hx-trigger]');
+  #|    for (const el of elements) {
+  #|      const elTrigger = el.getAttribute('hx-trigger') || el.getAttribute('data-hx-trigger');
+  #|      if (elTrigger) {
+  #|        const elParts = elTrigger.split(',').map(s => s.trim());
+  #|        for (const part of elParts) {
+  #|          if (part === 'load' || part.startsWith('load ')) {
+  #|            const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+  #|            el.dispatchEvent(event);
+  #|            break;
+  #|          }
+  #|        }
+  #|      }
+  #|    }
+  #|  };
+  #|}
