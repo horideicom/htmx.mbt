@@ -216,7 +216,18 @@ extern "js" fn request_with_form_async_callback(
   #|    callback(null);
   #|  };
   #|
-  #|  xhr.send(form_data_any);
+  #|  // Convert FormData to URL-encoded string for Sinon compatibility
+  #|  let body = form_data_any;
+  #|  if (form_data_any && typeof form_data_any.append === 'function') {
+  #|    // This is a FormData object, convert to URL-encoded string
+  #|    const params = [];
+  #|    for (const [key, value] of form_data_any.entries()) {
+  #|      params.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+  #|    }
+  #|    body = params.join('&');
+  #|  }
+  #|
+  #|  xhr.send(body);
   #|}
 
 ///|
