@@ -90,7 +90,9 @@ extern "js" fn dispatch_validation_failed_on_element(el : @dom.Element) -> Unit 
 ///|
 /// Dispatch htmx:validation:failed event on each invalid element
 /// Returns true if any event was prevented (i.e., should not report validity)
-extern "js" fn dispatch_validation_failed_events(invalids : Array[@dom.Element]) -> Bool =
+extern "js" fn dispatch_validation_failed_events(
+  invalids : Array[@dom.Element],
+) -> Bool =
   #|(invalids) => {
   #|  let validationPrevented = false;
   #|  for (let i = 0; i < invalids.length; i++) {
@@ -248,7 +250,6 @@ pub fn validate_element(element : @dom.Element) -> Bool {
       clear_validating_flag(element)
       return false
     }
-
     clear_validating_flag(element)
   }
   true

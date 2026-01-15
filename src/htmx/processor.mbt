@@ -772,11 +772,102 @@ extern "js" fn has_containing_form(el : @dom.Element) -> Bool =
   #|(el) => !!(el.form || el.closest('form'))
 
 ///|
+/// Get delay value in milliseconds from hx-trigger attribute
+extern "js" fn get_delay_from_trigger(element : @dom.Element) -> Int =
+  #|(element) => {
+  #|  const trigger = element.getAttribute('hx-trigger') || element.getAttribute('data-hx-trigger');
+  #|  console.log("[htmx.mbt DELAY] get_delay_from_trigger: trigger='" + trigger + "'");
+  #|  if (!trigger) return 0;
+  #|  const delayMatch = trigger.match(/delay:(\d+(?:ms)?)/);
+  #|  if (delayMatch) {
+  #|    let value = delayMatch[1];
+  #|    let delayMs;
+  #|    if (value.endsWith('ms')) {
+  #|      value = value.slice(0, -2);
+  #|      delayMs = parseInt(value);
+  #|    } else if (value.endsWith('s') && !value.endsWith('ms')) {
+  #|      value = value.slice(0, -1);
+  #|      delayMs = parseInt(value) * 1000;
+  #|    } else {
+  #|      delayMs = parseInt(value);
+  #|    }
+  #|    console.log("[htmx.mbt DELAY] Found delay: " + delayMs + "ms");
+  #|    return delayMs;
+  #|  }
+  #|  console.log("[htmx.mbt DELAY] No delay found in trigger");
+  #|  return 0;
+  #|}
+
+///|
+/// Process element with delay - stores event and sets timer
+extern "js" fn process_element_with_delay(
+  element : @dom.Element,
+  trigger_el : @dom.Element?,
+  event : @core.Any?,
+  delay_ms : Int,
+) -> Unit =
+  #|(element, trigger_el, event, delay_ms) => {
+  #|  const key = 'htmx-internal-data';
+  #|  let data = element[key];
+  #|  if (!data) {
+  #|    data = {};
+  #|    element[key] = data;
+  #|  }
+  #|
+  #|  // Clear existing timer (reset delay on repeated events)
+  #|  if (data.delayTimer) {
+  #|    clearTimeout(data.delayTimer);
+  #|  }
+  #|
+  #|  // Store the event for use in hx-vals/hx-vars evaluation
+  #|  data.delayEvent = event;
+  #|
+  #|  // Store trigger element reference
+  #|  data.delayTriggerEl = trigger_el;
+  #|
+  #|  // Mark element as waiting for delay
+  #|  data.delayPending = true;
+  #|
+  #|  // Set new timer - trigger a click event after delay to re-enter handle_click
+  #|  data.delayTimer = setTimeout(() => {
+  #|    data.delayTimer = null;
+  #|    data.delayPending = false;
+  #|    // Trigger the click event which will call process_element_with_trigger
+  #|    // The event is still stored in data.delayEvent for hx-vals evaluation
+  #|    const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+  #|    element.dispatchEvent(clickEvent);
+  #|  }, delay_ms);
+  #|}
+
+///|
+/// Check if element is waiting for delay timer
+extern "js" fn is_delay_pending(element : @dom.Element) -> Bool =
+  #|(element) => {
+  #|  const data = element['htmx-internal-data'];
+  #|  return !!(data && data.delayPending);
+  #|}
+
+///|
 /// Handle click events for htmx elements
 fn handle_click(evt : @core.Any) -> Unit {
   let event : @event.Event = @core.identity(evt)
   let target_el = get_event_target(evt)
   log_debug("handle_click: target_el=" + target_el.tagName())
+
+  // Check if this is an internal delayed trigger (from setTimeout)
+  // If delay is pending, this is the delayed trigger, so process it
+  match find_htmx_element(target_el) {
+    Some(htmx_el) =>
+      if is_delay_pending(htmx_el) {
+        // This is a delayed trigger - process the element directly
+        // Don't check delay again since we're coming from the delay timer
+        log_debug("handle_click: processing delayed trigger")
+        event.preventDefault()
+        process_element_with_trigger(htmx_el, None, Some(evt))
+        return
+      }
+    Option::None => ()
+  }
 
   // Check if clicking a submit button inside an htmx form
   if is_submit_button(target_el) {
@@ -785,12 +876,11 @@ fn handle_click(evt : @core.Any) -> Unit {
       // Check if the button itself has an htmx method attribute
       // If so, it should handle the click, not the form (indirect form submission)
       match find_method_url(target_el) {
-        Some(_) => {
+        Some(_) =>
           // Button has its own htmx request, skip form submit handling
           // It will be processed by find_htmx_element below
           ()
-        }
-        None => {
+        None =>
           // Button doesn't have htmx, check if form does
           match find_method_url(form) {
             Some(_) => {
@@ -799,12 +889,22 @@ fn handle_click(evt : @core.Any) -> Unit {
               // not explicit user action of clicking a submit button
               event.preventDefault()
               // Pass the button as submitter for formnovalidate check
-              process_element_with_trigger(form, Some(target_el), Some(evt))
+              // Check for delay modifier
+              let delay_ms = get_delay_from_trigger(form)
+              if delay_ms > 0 {
+                process_element_with_delay(
+                  form,
+                  Some(target_el),
+                  Some(evt),
+                  delay_ms,
+                )
+              } else {
+                process_element_with_trigger(form, Some(target_el), Some(evt))
+              }
               return
             }
             None => ()
           }
-        }
       }
     }
   }
@@ -821,7 +921,18 @@ fn handle_click(evt : @core.Any) -> Unit {
       let trigger = get_trigger_event(htmx_el)
       if trigger == "click" || trigger == "load" {
         event.preventDefault()
-        process_element_with_trigger(htmx_el, Some(target_el), Some(evt))
+        // Check for delay modifier
+        let delay_ms = get_delay_from_trigger(htmx_el)
+        if delay_ms > 0 {
+          process_element_with_delay(
+            htmx_el,
+            Some(target_el),
+            Some(evt),
+            delay_ms,
+          )
+        } else {
+          process_element_with_trigger(htmx_el, Some(target_el), Some(evt))
+        }
       }
     }
     Option::None => ()
@@ -838,7 +949,13 @@ fn handle_change(evt : @core.Any) -> Unit {
       let trigger = get_trigger_event(htmx_el)
       if trigger == "change" {
         event.preventDefault()
-        process_element(htmx_el, Some(evt))
+        // Check for delay modifier
+        let delay_ms = get_delay_from_trigger(htmx_el)
+        if delay_ms > 0 {
+          process_element_with_delay(htmx_el, None, Some(evt), delay_ms)
+        } else {
+          process_element(htmx_el, Some(evt))
+        }
       }
     }
     Option::None => ()
@@ -862,7 +979,13 @@ fn handle_submit(evt : @core.Any) -> Unit {
       if trigger == "submit" {
         event.preventDefault()
         // Pass submitter for formnovalidate check
-        process_element_with_trigger(htmx_el, submitter, Some(evt))
+        // Check for delay modifier
+        let delay_ms = get_delay_from_trigger(htmx_el)
+        if delay_ms > 0 {
+          process_element_with_delay(htmx_el, submitter, Some(evt), delay_ms)
+        } else {
+          process_element_with_trigger(htmx_el, submitter, Some(evt))
+        }
       }
     }
     Option::None => ()

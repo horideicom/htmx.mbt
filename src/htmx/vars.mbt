@@ -29,6 +29,11 @@ extern "js" fn get_expression_vars_inner(
   #|  // Unwrap MoonBit Option type for elt
   #|  const element = (elt && elt.$tag === 1) ? elt._0 : null;
   #|
+  #|  // Check for delay-stored event (used when delay modifier is active)
+  #|  let actualEvent = event;
+  #|  if (element && element['htmx-internal-data'] && element['htmx-internal-data'].delayEvent) {
+  #|    actualEvent = element['htmx-internal-data'].delayEvent;
+  #|  }
   #|  // Helper to get attribute value (checks both hx-* and data-hx-*)
   #|  const getAttributeValue = (el, attr) => {
   #|    if (!el) return null;
@@ -75,6 +80,8 @@ extern "js" fn get_expression_vars_inner(
   #|    }
   #|  };
   #|
+  #|  // Use actualEvent (which may be the stored delay event) for evaluation
+  #|  const eventForEval = actualEvent;
   #|  // Collect values from hx-vars or hx-vals attribute on element and its parents
   #|  const getValuesForElement = (elt, attr, evalAsDefault, values) => {
   #|    if (values == null) {
@@ -130,7 +137,7 @@ extern "js" fn get_expression_vars_inner(
   #|
   #|      let varsValues;
   #|      if (evaluateValue) {
-  #|        varsValues = evaluateAttribute(elt, str, event);
+  #|        varsValues = evaluateAttribute(elt, str, eventForEval);
   #|      } else {
   #|        varsValues = parseAttribute(elt, str);
   #|      }

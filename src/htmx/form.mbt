@@ -19,7 +19,9 @@ pub fn collect_input_values(form : @dom.Element) -> Array[(String, String)] {
 
 ///|
 /// Internal FFI to collect input values
-extern "js" fn collect_input_values_inner(form : @dom.Element) -> Array[(String, String)] =
+extern "js" fn collect_input_values_inner(
+  form : @dom.Element,
+) -> Array[(String, String)] =
   #|(form) => {
   #|  const result = [];
   #|
