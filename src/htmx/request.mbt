@@ -210,16 +210,31 @@ pub extern "js" fn fire_config_request_event(
   #|      }
   #|    }
   #|  }
-  #|  const evt = new CustomEvent('htmx:config-request', {
+  #|  // Create detail object for the event
+  #|  const detail = {
+  #|    parameters: plainParams,
+  #|    headers: plainHeaders,
+  #|    target: element
+  #|  };
+  #|
+  #|  // Dispatch kebab-case version
+  #|  const evt1 = new CustomEvent('htmx:config-request', {
   #|    bubbles: true,
   #|    cancelable: true,
-  #|    detail: {
-  #|      parameters: plainParams,
-  #|      headers: plainHeaders,
-  #|      target: element
-  #|    }
+  #|    detail: detail
   #|  });
-  #|  const result = element.dispatchEvent(evt);
+  #|  const result1 = element.dispatchEvent(evt1);
+  #|
+  #|  // Dispatch camelCase version (htmx:configRequest)
+  #|  const evt2 = new CustomEvent('htmx:configRequest', {
+  #|    bubbles: true,
+  #|    cancelable: true,
+  #|    detail: detail
+  #|  });
+  #|  const result2 = element.dispatchEvent(evt2);
+  #|
+  #|  // Return false only if BOTH were prevented (htmx.org behavior)
+  #|  const result = result1 && result2;
   #|  // Copy modified parameters back to the original parameters object
   #|  // Clear the buf and add new entries
   #|  if (parameters && parameters.buf !== undefined) {

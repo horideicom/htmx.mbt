@@ -131,13 +131,20 @@ extern "js" fn get_expression_vars_inner(
   #|
   #|      // Check if evaluation is allowed
   #|      if (evaluateValue && !allowEval) {
-  #|        // Trigger evalDisallowedError event
-  #|        const errorEvt = new CustomEvent('htmx:evalDisallowedError', {
+  #|        // Trigger evalDisallowedError event (both camelCase and kebab-case)
+  #|        const detail = { source: attr };
+  #|        const evt1 = new CustomEvent('htmx:evalDisallowedError', {
   #|          bubbles: true,
   #|          cancelable: true,
-  #|          detail: { source: attr }
+  #|          detail: detail
   #|        });
-  #|        elt.dispatchEvent(errorEvt);
+  #|        elt.dispatchEvent(evt1);
+  #|        const evt2 = new CustomEvent('htmx:evalDisallowedError', {
+  #|          bubbles: true,
+  #|          cancelable: true,
+  #|          detail: detail
+  #|        });
+  #|        elt.dispatchEvent(evt2);
   #|        return values;
   #|      }
   #|

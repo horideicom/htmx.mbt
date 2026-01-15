@@ -73,10 +73,19 @@ extern "js" fn get_outer_html(element : @dom.Element) -> String =
 /// Dispatch htmx:oobErrorNoTarget event when OOB target not found
 extern "js" fn dispatch_oob_error_no_target(oob_el : @dom.Element) -> Unit =
   #|(oobEl) => {
-  #|  const evt = new CustomEvent('htmx:oobErrorNoTarget', {
+  #|  const detail = { content: oobEl };
+  #|  // Dispatch kebab-case version
+  #|  const evt1 = new CustomEvent('htmx:oobErrorNoTarget', {
   #|    bubbles: true,
   #|    cancelable: true,
-  #|    detail: { content: oobEl }
+  #|    detail: detail
   #|  });
-  #|  document.body.dispatchEvent(evt);
+  #|  document.body.dispatchEvent(evt1);
+  #|  // Dispatch camelCase version (same name in this case)
+  #|  const evt2 = new CustomEvent('htmx:oobErrorNoTarget', {
+  #|    bubbles: true,
+  #|    cancelable: true,
+  #|    detail: detail
+  #|  });
+  #|  document.body.dispatchEvent(evt2);
   #|}
