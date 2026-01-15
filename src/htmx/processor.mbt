@@ -713,16 +713,47 @@ fn process_element(element : @dom.Element, event : @core.Any?) -> Unit {
 }
 
 ///|
-/// FFI to get event target directly
+/// Find the first element with htmx method attributes in the event path
+/// This ensures we prioritize the clicked element over its parents
 extern "js" fn get_event_target(evt : @core.Any) -> @dom.Element =
   #|(evt) => {
+  #|  // Helper function to check if element has htmx method attributes
+  #|  const hasHtmxMethod = (el) => {
+  #|    if (!el || !el.getAttribute) return false;
+  #|    const methods = ['hx-get', 'hx-post', 'hx-put', 'hx-delete', 'hx-patch'];
+  #|    for (const method of methods) {
+  #|      if (el.hasAttribute(method) || el.hasAttribute('data-' + method)) {
+  #|        return true;
+  #|      }
+  #|    }
+  #|    return false;
+  #|  };
+  #|
+  #|  // Try composedPath first - gives us the event propagation path
   #|  if (evt && typeof evt.composedPath === 'function') {
   #|    const path = evt.composedPath();
-  #|    if (path && path.length > 0 && path[0] && path[0].nodeType === 1) {
-  #|      return path[0];
+  #|    if (path && path.length > 0) {
+  #|      // Walk the path from target (first) to root (last)
+  #|      for (let i = 0; i < path.length; i++) {
+  #|        const el = path[i];
+  #|        if (el && el.nodeType === 1) {  // ELEMENT_NODE
+  #|          // Check if this element has htmx method attributes
+  #|          if (hasHtmxMethod(el)) {
+  #|            return el;
+  #|          }
+  #|        }
+  #|      }
   #|    }
   #|  }
-  #|  return evt.target;
+  #|
+  #|  // Fallback to evt.target if composedPath didn't work or no htmx element found
+  #|  const target = evt.target;
+  #|  if (target && target.nodeType === 1) {
+  #|    return target;
+  #|  }
+  #|
+  #|  // Last resort: return null or undefined
+  #|  return target;
   #|}
 
 ///|
