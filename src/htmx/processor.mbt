@@ -113,7 +113,9 @@ fn process_element_with_trigger(
       None => {
         // No form data, collect input values and create FormData with vars
         let vars_any = map_to_any(expression_vars)
-        let form_data_with_inputs = create_form_data_from_inputs_and_vars(element, vars_any)
+        let form_data_with_inputs = create_form_data_from_inputs_and_vars(
+          element, vars_any,
+        )
         request_with_form_async(
           url,
           http_method,
@@ -134,10 +136,9 @@ fn process_element_with_trigger(
         // Append hx-vars values (vars override form values)
         append_vars_to_url(base_url, map_to_any(expression_vars))
       }
-      None => {
+      None =>
         // No form data, just append vars
         append_vars_to_url(url, map_to_any(expression_vars))
-      }
     }
     request_async(actual_url, http_method, Some(element), callback)
   }
