@@ -109,6 +109,10 @@ fn parse_extended_target(
   if selector == "this" {
     log_debug_attr("parse_extended_target: this -> returning element")
     Some(element)
+  } else if selector.has_prefix("global ") {
+    let css = substring_after(selector, 7)
+    log_debug_attr("parse_extended_target: global '" + css + "'")
+    @dom.document().querySelector(css)
   } else if selector.has_prefix("closest ") {
     let css = substring_after(selector, 8)
     log_debug_attr("parse_extended_target: closest '" + css + "'")

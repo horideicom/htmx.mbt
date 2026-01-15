@@ -176,6 +176,162 @@ extern "js" fn parse_interval_js(value : @core.Any) -> @core.Any =
   #|}
 
 ///|
+extern "js" fn internal_eval(code : String) -> @core.Any =
+  #|(code) => {
+  #|  try {
+  #|    return (0, eval)(code);
+  #|  } catch (e) {
+  #|    return undefined;
+  #|  }
+  #|}
+
+///|
+extern "js" fn parse_html_any(html_any : @core.Any) -> @core.Any =
+  #|(html) => {
+  #|  const parser = new DOMParser();
+  #|  return parser.parseFromString(String(html ?? ''), 'text/html');
+  #|}
+
+///|
+extern "js" fn make_fragment_any(html_any : @core.Any) -> @core.Any =
+  #|(html) => {
+  #|  const range = document.createRange();
+  #|  return range.createContextualFragment(String(html ?? ''));
+  #|}
+
+///|
+extern "js" fn swap_outer_html_any(
+  target_any : @core.Any,
+  fragment_any : @core.Any,
+  _settle_any : @core.Any,
+) -> Unit =
+  #|(target, fragment, _settle) => {
+  #|  if (!target || !fragment) return;
+  #|  const tag = target.tagName ? target.tagName.toUpperCase() : '';
+  #|  if (tag === 'BODY') {
+  #|    const body = fragment.querySelector ? fragment.querySelector('body') : null;
+  #|    if (body) {
+  #|      target.innerHTML = body.innerHTML;
+  #|    } else {
+  #|      target.innerHTML = fragment.textContent ?? '';
+  #|    }
+  #|    return;
+  #|  }
+  #|  target.replaceWith(fragment);
+  #|}
+
+///|
+extern "js" fn get_swap_spec_any(target_any : @core.Any) -> @core.Any =
+  #|(target) => {
+  #|  const el = target;
+  #|  const config = (window.htmx && window.htmx.config) ? window.htmx.config : {};
+  #|  const defaultSwapStyle = typeof config.defaultSwapStyle === 'string'
+  #|    ? config.defaultSwapStyle
+  #|    : 'innerHTML';
+  #|  const defaultSettleDelay = typeof config.defaultSettleDelay === 'number'
+  #|    ? config.defaultSettleDelay
+  #|    : 0;
+  #|  let swapStyle = defaultSwapStyle;
+  #|  let swapDelay = 0;
+  #|  let settleDelay = defaultSettleDelay;
+  #|  let transition = false;
+  #|  let focusScroll = true;
+  #|  let ignoreTitle = false;
+  #|  let scroll = null;
+  #|  let show = null;
+  #|  let sawStyle = false;
+  #|  const raw = el && el.getAttribute
+  #|    ? (el.getAttribute('hx-swap') || el.getAttribute('data-hx-swap') || '')
+  #|    : '';
+  #|  const parseDuration = (value) => {
+  #|    if (!value) return 0;
+  #|    const trimmed = value.trim();
+  #|    if (trimmed === '') return 0;
+  #|    if (trimmed.endsWith('ms')) {
+  #|      const num = parseFloat(trimmed.slice(0, -2));
+  #|      return Number.isNaN(num) ? 0 : Math.floor(num);
+  #|    }
+  #|    if (trimmed.endsWith('s')) {
+  #|      const num = parseFloat(trimmed.slice(0, -1));
+  #|      return Number.isNaN(num) ? 0 : Math.floor(num * 1000);
+  #|    }
+  #|    const num = parseFloat(trimmed);
+  #|    return Number.isNaN(num) ? 0 : Math.floor(num);
+  #|  };
+  #|  const parseSpec = (value) => {
+  #|    if (!value) return null;
+  #|    const parts = value.split(':').map((part) => part.trim()).filter(Boolean);
+  #|    if (parts.length === 0) return null;
+  #|    let direction = null;
+  #|    let target = null;
+  #|    if (parts.length === 1) {
+  #|      direction = parts[0];
+  #|    } else {
+  #|      direction = parts[parts.length - 1];
+  #|      target = parts.slice(0, -1).join(':');
+  #|    }
+  #|    if (direction !== 'top' && direction !== 'bottom') return null;
+  #|    return { direction, target };
+  #|  };
+  #|  if (raw) {
+  #|    const parts = raw.trim().split(/\s+/);
+  #|    for (const part of parts) {
+  #|      if (!part) continue;
+  #|      if (part.startsWith('swap:')) {
+  #|        swapDelay = parseDuration(part.slice(5));
+  #|        continue;
+  #|      }
+  #|      if (part.startsWith('settle:')) {
+  #|        settleDelay = parseDuration(part.slice(7));
+  #|        continue;
+  #|      }
+  #|      if (part.startsWith('scroll:')) {
+  #|        scroll = parseSpec(part.slice(7));
+  #|        continue;
+  #|      }
+  #|      if (part.startsWith('show:')) {
+  #|        show = parseSpec(part.slice(5));
+  #|        continue;
+  #|      }
+  #|      if (part.startsWith('transition:')) {
+  #|        transition = part.slice(11) === 'true';
+  #|        continue;
+  #|      }
+  #|      if (part.startsWith('focus-scroll:')) {
+  #|        focusScroll = part.slice(13) !== 'false';
+  #|        continue;
+  #|      }
+  #|      if (part.startsWith('ignoreTitle:')) {
+  #|        ignoreTitle = part.slice(12) === 'true';
+  #|        continue;
+  #|      }
+  #|      if (!sawStyle) {
+  #|        swapStyle = part;
+  #|        sawStyle = true;
+  #|      }
+  #|    }
+  #|  }
+  #|  return {
+  #|    swapStyle,
+  #|    swapDelay,
+  #|    settleDelay,
+  #|    transition,
+  #|    focusScroll,
+  #|    ignoreTitle,
+  #|    scroll,
+  #|    show,
+  #|  };
+  #|}
+
+///|
+extern "js" fn init_make_settle_info() -> Unit =
+  #|() => {
+  #|  if (typeof window.makeSettleInfo !== 'function') {
+  #|    window.makeSettleInfo = function() { return {}; };
+  #|  }
+  #|}
+
+///|
 extern "js" fn resolved_promise() -> @core.Any =
   #|() => Promise.resolve()
 
@@ -518,7 +674,11 @@ fn internal_any(name_any : @core.Any) -> @core.Any {
       "getCachedHistory" => @core.from_fn1(get_cached_history_any)
       "restoreHistory" => @core.from_fn1(restore_history_any)
       "normalizePath" => @core.from_fn1(normalize_path_any)
-      _ => @core.undefined()
+      "parseHTML" => @core.from_fn1(parse_html_any)
+      "makeFragment" => @core.from_fn1(make_fragment_any)
+      "swapOuterHTML" => @core.from_fn3(swap_outer_html_any)
+      "getSwapSpecification" => @core.from_fn1(get_swap_spec_any)
+      _ => internal_eval(name)
     }
   }
 }
@@ -569,6 +729,7 @@ fn export_htmx(htmx_obj : @core.Any) -> Unit {
 ///|
 fn init {
   if is_browser() {
+    init_make_settle_info()
     export_htmx(make_htmx_object())
     @htmx.htmx_init()
   }
