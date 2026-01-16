@@ -889,6 +889,22 @@ extern "js" fn is_delay_processing(element : @dom.Element) -> Bool =
   #|}
 
 ///|
+/// Get the delay-stored event for use in hx-vals/hx-vars evaluation
+extern "js" fn get_delay_event(element : @dom.Element) -> @core.Any? =
+  #|(element) => {
+  #|  const data = element['htmx-internal-data'];
+  #|  return data && data.delayEvent ? data.delayEvent : null;
+  #|}
+
+///|
+/// Get the delay-stored trigger element (e.g., submitter for form submit)
+extern "js" fn get_delay_trigger_el(element : @dom.Element) -> @dom.Element? =
+  #|(element) => {
+  #|  const data = element['htmx-internal-data'];
+  #|  return data && data.delayTriggerEl ? data.delayTriggerEl : null;
+  #|}
+
+///|
 /// Get throttle value in milliseconds from hx-trigger attribute
 extern "js" fn get_throttle_from_trigger(element : @dom.Element) -> Int =
   #|(element) => {
@@ -986,9 +1002,11 @@ fn handle_click(evt : @core.Any) -> Unit {
       if is_delay_processing(htmx_el) {
         // This is a delayed trigger - process the element directly
         // Don't check delay again since we're coming from the delay timer
+        // Use the stored delay event which contains the original event info
         log_debug("handle_click: processing delayed trigger")
         event.preventDefault()
-        process_element_with_trigger(htmx_el, None, Some(evt))
+        let delay_event = get_delay_event(htmx_el)
+        process_element_with_trigger(htmx_el, None, delay_event)
         return
       }
       if is_throttle_processing(htmx_el) {
@@ -1102,6 +1120,22 @@ fn handle_change(evt : @core.Any) -> Unit {
   let target_el = get_event_target(evt)
   match find_htmx_element(target_el) {
     Some(htmx_el) => {
+      if is_delay_processing(htmx_el) {
+        // This is a delayed trigger - process the element directly
+        // Use the stored delay event which contains the original event info
+        log_debug("handle_change: processing delayed trigger")
+        event.preventDefault()
+        let delay_event = get_delay_event(htmx_el)
+        process_element_with_trigger(htmx_el, None, delay_event)
+        return
+      }
+      if is_throttle_processing(htmx_el) {
+        // This is a throttled trigger - process the element directly
+        log_debug("handle_change: processing throttled trigger")
+        event.preventDefault()
+        process_element_with_trigger(htmx_el, None, Some(evt))
+        return
+      }
       let trigger = get_trigger_event(htmx_el)
       if trigger == "change" {
         event.preventDefault()
@@ -1137,6 +1171,23 @@ fn handle_submit(evt : @core.Any) -> Unit {
   let submitter = get_event_submitter(evt)
   match find_htmx_element(target_el) {
     Some(htmx_el) => {
+      if is_delay_processing(htmx_el) {
+        // This is a delayed trigger - process the element directly
+        // Use the stored delay event and trigger element
+        log_debug("handle_submit: processing delayed trigger")
+        event.preventDefault()
+        let delay_event = get_delay_event(htmx_el)
+        let delay_trigger_el = get_delay_trigger_el(htmx_el)
+        process_element_with_trigger(htmx_el, delay_trigger_el, delay_event)
+        return
+      }
+      if is_throttle_processing(htmx_el) {
+        // This is a throttled trigger - process the element directly
+        log_debug("handle_submit: processing throttled trigger")
+        event.preventDefault()
+        process_element_with_trigger(htmx_el, submitter, Some(evt))
+        return
+      }
       let trigger = get_trigger_event(htmx_el)
       if trigger == "submit" {
         event.preventDefault()
