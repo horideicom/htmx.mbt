@@ -678,6 +678,28 @@ fn normalize_path_any(path_any : @core.Any) -> @core.Any {
 }
 
 ///|
+/// Wrapper for tokenizeString - (str) -> tokens array
+fn tokenize_string_any(str_any : @core.Any) -> @core.Any {
+  let str = as_string(str_any)
+  @htmx.tokenize_string(str)
+}
+
+///|
+/// Wrapper for maybeGenerateConditional - (elt, tokens, paramName) -> function or null
+fn maybe_generate_conditional_any(
+  elt_any : @core.Any,
+  tokens_any : @core.Any,
+  param_name_any : @core.Any
+) -> @core.Any {
+  let param_name = as_string(param_name_any)
+  @htmx.maybe_generate_conditional(
+    elt_any,
+    tokens_any,
+    param_name
+  )
+}
+
+///|
 fn internal_any(name_any : @core.Any) -> @core.Any {
   if @core.is_nullish(name_any) {
     @core.undefined()
@@ -692,6 +714,8 @@ fn internal_any(name_any : @core.Any) -> @core.Any {
       "makeFragment" => @core.from_fn1(make_fragment_any)
       "swapOuterHTML" => @core.from_fn3(swap_outer_html_any)
       "getSwapSpecification" => @core.from_fn1(get_swap_spec_any)
+      "tokenizeString" => @core.from_fn1(tokenize_string_any)
+      "maybeGenerateConditional" => @core.from_fn3(maybe_generate_conditional_any)
       _ => internal_eval(name)
     }
   }

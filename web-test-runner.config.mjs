@@ -60,7 +60,6 @@ const config = {
     'test/core/**/*.js',
     // Exclude tests that depend on unimplemented internal functions (htmx._)
     '!test/core/internals.js',
-    '!test/core/tokenizer.js',
     '!test/core/parameters.js',
     '!test/core/perf.js',
     '!test/core/extensions.js',
