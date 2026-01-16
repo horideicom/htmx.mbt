@@ -1426,6 +1426,10 @@ extern "js" fn init_htmx_process_api() -> Unit =
   #|    // For ShadowRoot, attach event listeners directly to intercept form submissions
   #|    // Events from shadow DOM may not properly propagate to document in some browsers
   #|    if (element.nodeType === 11) {  // ShadowRoot (DOCUMENT_FRAGMENT_NODE)
+  #|      // Check if we've already attached listeners to this shadow root
+  #|      if (element._htmxProcessed) return;
+  #|      element._htmxProcessed = true;
+  #|
   #|      element.addEventListener('click', function(evt) {
   #|        const target = evt.target;
   #|        if (!target || !target.tagName) return;
@@ -1480,7 +1484,30 @@ extern "js" fn init_htmx_process_api() -> Unit =
   #|            }
   #|          }
   #|        }
-  #|      }, true);  // Capture phase
+  #|      }, true);  // Capture phase for clicks
+
+  #|      // Also intercept submit events directly (forms can be submitted without a click)
+  #|      element.addEventListener('submit', function(evt) {
+  #|        evt.preventDefault();
+  #|        evt.stopPropagation();
+  #|
+  #|        // Find the form in the event path
+  #|        const path = evt.composedPath();
+  #|        let form = null;
+  #|        for (let i = 0; i < path.length; i++) {
+  #|          const el = path[i];
+  #|          if (el && el.nodeType === 1 && el.tagName === 'FORM') {
+  #|            form = el;
+  #|            break;
+  #|          }
+  #|        }
+  #|
+  #|        if (form) {
+  #|          // Trigger htmx processing with a click event on the form
+  #|          const clickEvt = new MouseEvent('click', { bubbles: true, cancelable: true });
+  #|          form.dispatchEvent(clickEvt);
+  #|        }
+  #|      }, true);  // Capture phase for submit
   #|    }
   #|
   #|    // Process the element itself for load triggers
