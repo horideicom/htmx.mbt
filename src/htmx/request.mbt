@@ -100,30 +100,150 @@ extern "js" fn xhr_get_status(xhr : @core.Any) -> Int =
 
 ///|
 /// Standard htmx request headers
-fn get_htmx_headers(
+extern "js" fn get_htmx_headers(
   trigger_element : @dom.Element?,
   prompt_response : String?,
-) -> Map[String, String] {
-  let headers : Map[String, String] = { "HX-Request": "true" }
-  match trigger_element {
-    Some(el) => {
-      match el.getAttribute("id") {
-        Some(id) => headers["HX-Trigger"] = id
-        None => ()
-      }
-      match el.getAttribute("name") {
-        Some(name) => headers["HX-Trigger-Name"] = name
-        None => ()
-      }
-    }
-    None => ()
-  }
-  // Add HX-Prompt header if prompt response exists
-  if not(is_prompt_response_none(prompt_response)) {
-    headers["HX-Prompt"] = unwrap_prompt_response(prompt_response)
-  }
-  headers
-}
+) -> Map[String, String] =
+  #|(trigger_element, prompt_response) => {
+  #|  // Unwrap MoonBit Option types
+  #|  const element = (trigger_element && trigger_element.$tag === 1) ? trigger_element._0 : null;
+  #|
+  #|  // Start with default HX headers
+  #|  const headers = { "HX-Request": "true" };
+  #|
+  #|  if (element) {
+  #|    // Add HX-Trigger header from element id
+  #|    const id = element.getAttribute("id");
+  #|    if (id) {
+  #|      headers["HX-Trigger"] = id;
+  #|    }
+  #|
+  #|    // Add HX-Trigger-Name header from element name
+  #|    const name = element.getAttribute("name");
+  #|    if (name) {
+  #|      headers["HX-Trigger-Name"] = name;
+  #|    }
+  #|
+  #|    // Collect custom headers from hx-headers attribute (with inheritance)
+  #|    // This logic is inlined here because get_headers_from_element is not accessible from FFI
+  #|    const getAttributeValue = (el, attr) => {
+  #|      if (!el) return null;
+  #|      return el.getAttribute(attr) || el.getAttribute('data-' + attr);
+  #|    };
+  #|
+  #|    const parseAttribute = (str) => {
+  #|      // Wrap in braces if not already present
+  #|      if (str.indexOf('{') !== 0) {
+  #|        str = '{' + str + '}';
+  #|      }
+  #|      try {
+  #|        return JSON.parse(str);
+  #|      } catch (e) {
+  #|        return {};
+  #|      }
+  #|    };
+  #|
+  #|    const evaluateAttribute = (elt, str) => {
+  #|      // Wrap in braces if not already present
+  #|      if (str.indexOf('{') !== 0) {
+  #|        str = '{' + str + '}';
+  #|      }
+  #|      try {
+  #|        return new Function('return (' + str + ')').call(elt);
+  #|      } catch (e) {
+  #|        return {};
+  #|      }
+  #|    };
+  #|
+  #|    const getHeadersForElement = (elt, hdrs, visited) => {
+  #|      if (hdrs == null) {
+  #|        hdrs = {};
+  #|      }
+  #|      if (elt == null) {
+  #|        return hdrs;
+  #|      }
+  #|
+  #|      // Safety check to prevent infinite loops using visited Set
+  #|      if (!visited) {
+  #|        visited = new Set();
+  #|      }
+  #|      if (visited.has(elt)) {
+  #|        return hdrs;
+  #|      }
+  #|      visited.add(elt);
+  #|
+  #|      // First, collect from parent (so parent values come first)
+  #|      const parent = elt.parentElement;
+  #|      if (parent) {
+  #|        getHeadersForElement(parent, hdrs, visited);
+  #|      }
+  #|
+  #|      // Then, process current element (child values override parent values)
+  #|      const attributeValue = getAttributeValue(elt, 'hx-headers');
+  #|      if (attributeValue) {
+  #|        let str = attributeValue.trim();
+  #|        let evaluateValue = false;
+  #|
+  #|        // Check for 'unset' keyword
+  #|        if (str === 'unset') {
+  #|          // Clear all headers
+  #|          for (const key in hdrs) {
+  #|            if (hdrs.hasOwnProperty(key)) {
+  #|              delete hdrs[key];
+  #|            }
+  #|          }
+  #|          return hdrs;
+  #|        }
+  #|
+  #|        // Check for javascript: or js: prefix (forces evaluation)
+  #|        if (str.indexOf('javascript:') === 0) {
+  #|          str = str.slice(11);
+  #|          evaluateValue = true;
+  #|        } else if (str.indexOf('js:') === 0) {
+  #|          str = str.slice(3);
+  #|          evaluateValue = true;
+  #|        }
+  #|
+  #|        let headersValues;
+  #|        if (evaluateValue) {
+  #|          headersValues = evaluateAttribute(elt, str);
+  #|        } else {
+  #|          headersValues = parseAttribute(str);
+  #|        }
+  #|
+  #|        // Child values override parent values
+  #|        if (headersValues) {
+  #|          for (const key in headersValues) {
+  #|            if (headersValues.hasOwnProperty(key)) {
+  #|              hdrs[key] = headersValues[key];
+  #|            }
+  #|          }
+  #|        }
+  #|      }
+  #|      return hdrs;
+  #|    };
+  #|
+  #|    const customHeaders = getHeadersForElement(element, {});
+  #|
+  #|    // Merge custom headers (custom headers override HX headers in case of conflict)
+  #|    for (const key in customHeaders) {
+  #|      if (customHeaders.hasOwnProperty(key)) {
+  #|        headers[key] = customHeaders[key];
+  #|      }
+  #|    }
+  #|  }
+  #|
+  #|  // Add HX-Prompt header if prompt response exists
+  #|  const promptResponse = (prompt_response && prompt_response.$tag === 1) ? prompt_response._0 : null;
+  #|  if (promptResponse !== null) {
+  #|    headers["HX-Prompt"] = String(promptResponse);
+  #|  }
+  #|
+  #|  // Convert to MoonBit Map format
+  #|  return moonbitlang$core$builtin$$Map$from_array$14$(
+  #|    Object.entries(headers).map(([k, v]) => ({ _0: k, _1: v }))
+  #|  );
+  #|}
 
 ///|
 /// Perform synchronous XHR request (for Sinon mock server compatibility)

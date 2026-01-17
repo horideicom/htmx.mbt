@@ -197,3 +197,144 @@ extern "js" fn get_expression_vars_inner(
   #|  }
   #|  return { buf: buf, start: 0, end: buf.length };
   #|}
+
+///|
+/// Get all custom headers from hx-headers attribute
+/// Returns a Map that can be converted to @core.Any for FFI
+pub fn get_headers_from_element(elt : @dom.Element?) -> Map[String, String] {
+  get_headers_from_element_inner(elt)
+}
+
+///|
+/// Internal function to get headers via FFI
+extern "js" fn get_headers_from_element_inner(
+  elt : @dom.Element?,
+) -> Map[String, String] =
+  #|(elt) => {
+  #|  // Unwrap MoonBit Option type for elt
+  #|  const element = (elt && elt.$tag === 1) ? elt._0 : null;
+  #|  // Helper to get attribute value (checks both hx-* and data-hx-*)
+  #|  const getAttributeValue = (el, attr) => {
+  #|    if (!el) return null;
+  #|    return el.getAttribute(attr) || el.getAttribute('data-' + attr);
+  #|  };
+  #|  // Check if allowEval is enabled
+  #|  const allowEval = window.htmx && window.htmx.config && window.htmx.config.allowEval !== false;
+  #|  // Evaluate attribute value as JavaScript object literal
+  #|  const evaluateAttribute = (elt, str) => {
+  #|    // Wrap in braces if not already present
+  #|    if (str.indexOf('{') !== 0) {
+  #|      str = '{' + str + '}';
+  #|    }
+  #|    try {
+  #|      return new Function('return (' + str + ')').call(elt);
+  #|    } catch (e) {
+  #|      console.error('htmx.mbt: Error evaluating headers:', e, 'str:', str);
+  #|      return {};
+  #|    }
+  #|  };
+  #|  // Parse attribute value as JSON
+  #|  const parseAttribute = (elt, str) => {
+  #|    // Wrap in braces if not already present
+  #|    if (str.indexOf('{') !== 0) {
+  #|      str = '{' + str + '}';
+  #|    }
+  #|    try {
+  #|      return JSON.parse(str);
+  #|    } catch (e) {
+  #|      console.error('htmx.mbt: Error parsing headers JSON:', e);
+  #|      return {};
+  #|    }
+  #|  };
+  #|  // Collect headers from hx-headers attribute on element and its parents
+  #|  const getHeadersForElement = (elt, headers) => {
+  #|    if (headers == null) {
+  #|      headers = {};
+  #|    }
+  #|    if (elt == null) {
+  #|      return headers;
+  #|    }
+  #|    // First, collect from parent (so parent values come first)
+  #|    const parent = elt.parentElement;
+  #|    if (parent) {
+  #|      getHeadersForElement(parent, headers);
+  #|    }
+  #|    // Then, process current element (child values override parent values)
+  #|    const attributeValue = getAttributeValue(elt, 'hx-headers');
+  #|    if (attributeValue) {
+  #|      let str = attributeValue.trim();
+  #|      let evaluateValue = false;
+  #|      // Check for 'unset' keyword
+  #|      if (str === 'unset') {
+  #|        // Clear all headers - 'unset' removes all inherited headers
+  #|        for (const key in headers) {
+  #|          if (headers.hasOwnProperty(key)) {
+  #|            delete headers[key];
+  #|          }
+  #|        }
+  #|        return headers;
+  #|      }
+  #|      // Check for javascript: or js: prefix (forces evaluation)
+  #|      if (str.indexOf('javascript:') === 0) {
+  #|        str = str.slice(11);
+  #|        evaluateValue = true;
+  #|      } else if (str.indexOf('js:') === 0) {
+  #|        str = str.slice(3);
+  #|        evaluateValue = true;
+  #|      }
+  #|      // Check if evaluation is allowed
+  #|      if (evaluateValue && !allowEval) {
+  #|        // Trigger evalDisallowedError event (both camelCase and kebab-case)
+  #|        const detail = { source: 'hx-headers' };
+  #|        const evt1 = new CustomEvent('htmx:evalDisallowedError', {
+  #|          bubbles: true,
+  #|          cancelable: true,
+  #|          detail: detail
+  #|        });
+  #|        elt.dispatchEvent(evt1);
+  #|        const evt2 = new CustomEvent('htmx:evalDisallowedError', {
+  #|          bubbles: true,
+  #|          cancelable: true,
+  #|          detail: detail
+  #|        });
+  #|        elt.dispatchEvent(evt2);
+  #|        return headers;
+  #|      }
+  #|      let headersValues;
+  #|      if (evaluateValue) {
+  #|        headersValues = evaluateAttribute(elt, str);
+  #|      } else {
+  #|        headersValues = parseAttribute(elt, str);
+  #|      }
+  #|      // Child values override parent values
+  #|      if (headersValues) {
+  #|        for (const key in headersValues) {
+  #|          if (headersValues.hasOwnProperty(key)) {
+  #|            headers[key] = headersValues[key];
+  #|          }
+  #|        }
+  #|      }
+  #|    }
+  #|    return headers;
+  #|  };
+  #|  let headers = {};
+  #|  if (element) {
+  #|    headers = getHeadersForElement(element, {}) || {};
+  #|  }
+  #|  // Convert to MoonBit Map format
+  #|  const entries = Object.entries(headers);
+  #|  const buf = [];
+  #|  for (const [k, v] of entries) {
+  #|    let strValue;
+  #|    // Convert values to string
+  #|    if (v === null) {
+  #|      strValue = 'null';
+  #|    } else if (typeof v === 'object') {
+  #|      strValue = JSON.stringify(v);
+  #|    } else {
+  #|      strValue = String(v);
+  #|    }
+  #|    buf.push({ _0: k, _1: strValue });
+  #|  }
+  #|  return { buf: buf, start: 0, end: buf.length };
+  #|}
