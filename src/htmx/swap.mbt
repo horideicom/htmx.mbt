@@ -7,6 +7,7 @@ pub enum SwapStyle {
   AfterBegin
   BeforeEnd
   AfterEnd
+  TextContent
   Delete
   Morph
   None
@@ -22,6 +23,7 @@ pub impl Show for SwapStyle with output(self, logger) {
     AfterBegin => "AfterBegin"
     BeforeEnd => "BeforeEnd"
     AfterEnd => "AfterEnd"
+    TextContent => "TextContent"
     Delete => "Delete"
     Morph => "Morph"
     None => "None"
@@ -352,6 +354,7 @@ pub fn SwapStyle::parse(value : String) -> SwapStyle {
     "afterbegin" => AfterBegin
     "beforeend" => BeforeEnd
     "afterend" => AfterEnd
+    "textContent" => TextContent
     "delete" => Delete
     "none" => None
     "morph" => Morph
@@ -369,6 +372,7 @@ pub fn SwapStyle::to_htmx_string(self : SwapStyle) -> String {
     AfterBegin => "afterbegin"
     BeforeEnd => "beforeend"
     AfterEnd => "afterend"
+    TextContent => "textContent"
     Delete => "delete"
     None => "none"
     Morph => "morph"
@@ -393,6 +397,7 @@ pub fn swap(target : @dom.Element, content : String, style : SwapStyle) -> Unit 
   match style {
     InnerHTML => target.setInnerHTML(content)
     OuterHTML => target.setOuterHTML(content)
+    TextContent => target.setTextContent(content)
     Morph => morph(target, content)
     Delete => target.remove()
     None => ()

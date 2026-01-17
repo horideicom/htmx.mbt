@@ -260,6 +260,7 @@ pub enum SwapStyle {
   AfterBegin
   BeforeEnd
   AfterEnd
+  TextContent
   Delete
   Morph
   None

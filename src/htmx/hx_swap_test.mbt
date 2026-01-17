@@ -63,6 +63,14 @@ test "SwapStyle parse none" {
 }
 
 ///|
+test "SwapStyle parse textContent" {
+  match SwapStyle::parse("textContent") {
+    TextContent => inspect("ok", content="ok")
+    _ => inspect("error", content="Expected TextContent")
+  }
+}
+
+///|
 test "SwapStyle parse morph" {
   match SwapStyle::parse("morph") {
     Morph => inspect("ok", content="ok")

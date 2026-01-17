@@ -22,7 +22,7 @@ describe('hx-swap attribute', function() {
     a.innerHTML.should.equal('Clicked!')
   })
 
-  it.skip('swap textContent properly with HTML tags', function() {
+  it('swap textContent properly with HTML tags', function() {
     this.server.respondWith('GET', '/test', '<a id="a1" hx-get="/test2">Click Me</a>')
 
     var d1 = make('<div id="d1" hx-get="/test" hx-swap="textContent"></div>')
@@ -33,7 +33,7 @@ describe('hx-swap attribute', function() {
     should.equal(byId('a1'), null)
   })
 
-  it.skip('swap textContent properly with HTML tags and text', function() {
+  it('swap textContent properly with HTML tags and text', function() {
     this.server.respondWith('GET', '/test', 'text content <a id="a1" hx-get="/test2">Click Me</a>')
 
     var d1 = make('<div id="d1" hx-get="/test" hx-swap="textContent"></div>')
@@ -44,7 +44,7 @@ describe('hx-swap attribute', function() {
     should.equal(byId('a1'), null)
   })
 
-  it.skip('swap textContent ignores OOB swaps', function() {
+  it('swap textContent ignores OOB swaps', function() {
     this.server.respondWith('GET', '/test', '<span id="d2" hx-swap-oob="true">hi</span> <a id="a1" hx-get="/test2">Click Me</a>')
 
     var d1 = make('<div id="d1" hx-get="/test" hx-swap="textContent"></div>')

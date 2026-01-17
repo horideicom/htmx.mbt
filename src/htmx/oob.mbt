@@ -99,6 +99,10 @@ pub fn execute_oob_swap(
       let content = get_outer_html(new_el)
       set_outer_html(target_el, content)
     }
+    TextContent => {
+      let content = get_inner_html(new_el)
+      target_el.setTextContent(content)
+    }
     BeforeBegin => {
       let content = get_outer_html(new_el)
       insert_adjacent(target_el, "beforebegin", content)
