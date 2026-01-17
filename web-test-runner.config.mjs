@@ -91,7 +91,7 @@ const config = {
     // Skip tests that depend on allowEval and hx-vals
     // '!test/attributes/hx-vals.js',  // ISSUE #64: delay trigger test failing
     // Skip tests that depend on full AJAX/swap implementation
-    '!test/attributes/hx-confirm.js',
+    // '!test/attributes/hx-confirm.js',  // ENABLED - hx-confirm implemented
     // '!test/attributes/hx-delete.js',  // enabled - passing
     '!test/attributes/hx-get.js',  // enabled - passing
     // '!test/attributes/hx-patch.js',  // enabled - passing
@@ -113,7 +113,6 @@ const config = {
     '!test/attributes/hx-include.js',
     '!test/attributes/hx-on.js',
     '!test/attributes/hx-params.js',
-    '!test/attributes/hx-prompt.js',
     '!test/attributes/hx-request.js',
     '!test/attributes/hx-sse.js',
     '!test/attributes/hx-validate.js',

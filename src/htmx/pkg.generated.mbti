@@ -13,6 +13,8 @@ pub fn append_query_string(String, String) -> String
 
 pub fn build_form_data(Array[(String, String)]) -> @http.FormData
 
+pub fn clear_skip_confirm(@dom.Element) -> Unit
+
 pub fn collect_input_values(@dom.Element) -> Array[(String, String)]
 
 pub fn create_htmx_observer() -> @observer.MutationObserver
@@ -33,9 +35,13 @@ pub fn find_method_url(@dom.Element) -> (String, String)?
 
 pub fn find_oob_target(@dom.Element, OobSpec) -> @dom.Element?
 
+pub fn find_sse_parent(@dom.Element) -> @dom.Element?
+
 pub fn find_targets_by_selector(@dom.Element, String) -> Array[@dom.Element]
 
 pub fn fire_config_request_event(@dom.Element, @core.Any, @core.Any) -> Bool
+
+pub fn fire_confirm_event(@dom.Element, String?) -> Bool
 
 pub fn get_attribute_with_prefix(@dom.Element, String) -> String?
 
@@ -53,11 +59,15 @@ pub fn get_hx_methods() -> Array[String]
 
 pub fn get_method_attribute(@dom.Element, String) -> String?
 
+pub fn get_sse_spec(@dom.Element) -> SseSpec?
+
 pub fn get_swap_style_with_inherit(@dom.Element) -> SwapStyle
 
 pub fn get_target_with_inherit(@dom.Element) -> @dom.Element
 
 pub fn has_htmx_attribute(@dom.Element) -> Bool
+
+pub fn has_sse_attribute(@dom.Element) -> Bool
 
 pub fn hide_indicators(Array[@dom.Element]) -> Unit
 
@@ -101,9 +111,17 @@ pub fn hx_validate() -> String
 
 pub fn hx_vals() -> String
 
+pub fn init_sse_connections(@core.Any) -> Unit
+
 pub fn init_with_observer() -> @observer.MutationObserver
 
+pub fn is_prompt_response_none(String?) -> Bool
+
+pub fn is_sse_trigger(String) -> Bool
+
 pub fn kebab_to_camel(String) -> String
+
+pub fn maybe_generate_conditional(@core.Any, @core.Any, String) -> @core.Any
 
 pub fn morph(@dom.Element, String) -> Unit
 
@@ -112,6 +130,8 @@ pub fn morph_element(@dom.Element, @dom.Element) -> Unit
 pub fn normalize_path(String) -> String
 
 pub fn parse_oob_spec(String) -> OobSpec
+
+pub fn parse_sse_attr(String) -> SseSpec
 
 pub fn parse_trigger(String) -> TriggerDef
 
@@ -125,35 +145,51 @@ pub fn replace_url(String) -> Unit
 
 pub async fn request(String, HttpMethod) -> String
 
-pub fn request_async(String, HttpMethod, @dom.Element?, @core.Any) -> Unit
+pub fn request_async(String, HttpMethod, @dom.Element?, String?, @core.Any) -> Unit
 
 pub async fn request_safe(String, HttpMethod) -> String? noraise
 
-pub fn request_sync(String, HttpMethod, @dom.Element?) -> String?
+pub fn request_sync(String, HttpMethod, @dom.Element?, String?) -> String?
 
-pub async fn request_with_form(String, HttpMethod, @http.FormData?, @dom.Element?) -> String
+pub async fn request_with_form(String, HttpMethod, @http.FormData?, @dom.Element?, String?) -> String
 
-pub fn request_with_form_async(String, HttpMethod, @http.FormData?, @dom.Element?, @core.Any) -> Unit
+pub fn request_with_form_async(String, HttpMethod, @http.FormData?, @dom.Element?, String?, @core.Any) -> Unit
 
-pub async fn request_with_form_safe(String, HttpMethod, @http.FormData?, @dom.Element?) -> String? noraise
+pub async fn request_with_form_safe(String, HttpMethod, @http.FormData?, @dom.Element?, String?) -> String? noraise
 
-pub fn request_with_form_sync(String, HttpMethod, @http.FormData?, @dom.Element?) -> String?
+pub fn request_with_form_sync(String, HttpMethod, @http.FormData?, @dom.Element?, String?) -> String?
 
 pub fn restore_history(String) -> Unit
 
 pub fn save_to_history_cache(String, @core.Any, String) -> Unit
 
+pub fn should_skip_confirm(@dom.Element) -> Bool
+
 pub fn show_indicators(Array[@dom.Element]) -> Unit
+
+pub fn sse_swap(@dom.Element, String, String) -> Unit
 
 pub fn start_htmx_observer(@observer.MutationObserver) -> Unit
 
 pub fn swap(@dom.Element, String, SwapStyle) -> Unit
+
+pub fn tokenize_string(String) -> @core.Any
+
+pub fn unwrap_prompt_response(String?) -> String
 
 pub fn validate_element(@dom.Element) -> Bool
 
 pub fn validate_element_with_trigger(@dom.Element, @dom.Element?) -> Bool
 
 pub fn values_to_query_string(Array[(String, String)]) -> String
+
+pub fn window_confirm(String) -> Bool
+
+pub fn window_confirm_option(String?) -> Bool
+
+pub fn window_prompt(String) -> String?
+
+pub fn window_prompt_option(String?) -> String?
 
 pub fn with_data_prefix(String) -> String
 
@@ -197,6 +233,11 @@ pub struct ShowSpec {
   target : String?
 }
 pub fn ShowSpec::new(ScrollDirection, String?) -> Self
+
+pub struct SseSpec {
+  connect_url : String?
+  swap_events : Array[String]
+}
 
 pub struct SwapSpec {
   style : SwapStyle

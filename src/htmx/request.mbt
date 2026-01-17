@@ -100,7 +100,10 @@ extern "js" fn xhr_get_status(xhr : @core.Any) -> Int =
 
 ///|
 /// Standard htmx request headers
-fn get_htmx_headers(trigger_element : @dom.Element?) -> Map[String, String] {
+fn get_htmx_headers(
+  trigger_element : @dom.Element?,
+  prompt_response : String?,
+) -> Map[String, String] {
   let headers : Map[String, String] = { "HX-Request": "true" }
   match trigger_element {
     Some(el) => {
@@ -115,6 +118,10 @@ fn get_htmx_headers(trigger_element : @dom.Element?) -> Map[String, String] {
     }
     None => ()
   }
+  // Add HX-Prompt header if prompt response exists
+  if not(is_prompt_response_none(prompt_response)) {
+    headers["HX-Prompt"] = unwrap_prompt_response(prompt_response)
+  }
   headers
 }
 
@@ -124,10 +131,11 @@ pub fn request_sync(
   url : String,
   http_method : HttpMethod,
   trigger_element : @dom.Element?,
+  prompt_response : String?,
 ) -> String? {
   let xhr = create_xhr()
   xhr_open(xhr, http_method.to_string(), url, false)
-  let headers = get_htmx_headers(trigger_element)
+  let headers = get_htmx_headers(trigger_element, prompt_response)
   headers.each(fn(name, value) { xhr_set_header(xhr, name, value) })
   xhr_send_no_body(xhr)
   let status = xhr_get_status(xhr)
@@ -145,10 +153,11 @@ pub fn request_with_form_sync(
   http_method : HttpMethod,
   form_data : @http.FormData?,
   trigger_element : @dom.Element?,
+  prompt_response : String?,
 ) -> String? {
   let xhr = create_xhr()
   xhr_open(xhr, http_method.to_string(), url, false)
-  let headers = get_htmx_headers(trigger_element)
+  let headers = get_htmx_headers(trigger_element, prompt_response)
   headers.each(fn(name, value) { xhr_set_header(xhr, name, value) })
   match form_data {
     Some(fd) => xhr_send(xhr, fd.as_any())
@@ -337,12 +346,11 @@ extern "js" fn request_with_form_async_callback(
 extern "js" fn map_to_js_object(m : Map[String, String]) -> @core.Any =
   #|(m) => {
   #|  const obj = {};
-  #|  // MoonBit Map has { buf: [{_0: key, _1: value}, ...], start, end } structure
-  #|  if (m && m.buf) {
-  #|    for (let i = m.start || 0; i < (m.end || m.buf.length); i++) {
-  #|      const entry = m.buf[i];
-  #|      if (entry && entry._0 !== undefined) {
-  #|        obj[entry._0] = entry._1;
+  #|  // MoonBit Map is a hash map structure with entries array
+  #|  if (m && m.entries) {
+  #|    for (const entry of m.entries) {
+  #|      if (entry && entry.key !== undefined) {
+  #|        obj[entry.key] = entry.value;
   #|      }
   #|    }
   #|  }
@@ -355,9 +363,10 @@ pub fn request_async(
   url : String,
   http_method : HttpMethod,
   trigger_element : @dom.Element?,
+  prompt_response : String?,
   callback : @core.Any,
 ) -> Unit {
-  let headers = get_htmx_headers(trigger_element)
+  let headers = get_htmx_headers(trigger_element, prompt_response)
   let headers_obj = map_to_js_object(headers)
   request_async_callback(
     url,
@@ -375,9 +384,10 @@ pub fn request_with_form_async(
   http_method : HttpMethod,
   form_data : @http.FormData?,
   trigger_element : @dom.Element?,
+  prompt_response : String?,
   callback : @core.Any,
 ) -> Unit {
-  let headers = get_htmx_headers(trigger_element)
+  let headers = get_htmx_headers(trigger_element, prompt_response)
   let headers_obj = map_to_js_object(headers)
   match form_data {
     Some(fd) =>
@@ -407,8 +417,9 @@ pub async fn request_with_form(
   http_method : HttpMethod,
   form_data : @http.FormData?,
   trigger_element : @dom.Element?,
+  prompt_response : String?,
 ) -> String {
-  let headers = get_htmx_headers(trigger_element)
+  let headers = get_htmx_headers(trigger_element, prompt_response)
   match form_data {
     Some(fd) => {
       let body = fd.as_any()
@@ -453,8 +464,13 @@ pub async fn request_with_form_safe(
   http_method : HttpMethod,
   form_data : @http.FormData?,
   trigger_element : @dom.Element?,
+  prompt_response : String?,
 ) -> String? noraise {
-  Some(request_with_form(url, http_method, form_data, trigger_element)) catch {
+  Some(
+    request_with_form(
+      url, http_method, form_data, trigger_element, prompt_response,
+    ),
+  ) catch {
     _ => None
   }
 }

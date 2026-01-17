@@ -172,6 +172,17 @@ fn process_element_with_trigger(
     }
   }
 
+  // Handle hx-prompt attribute
+  let prompt_message = get_prompt_message(element)
+  let prompt_response = window_prompt_option(prompt_message)
+  let prompt_response_str = unwrap_prompt_response(prompt_response)
+  log_debug("prompt_response: " + prompt_response_str)
+  // If prompt was cancelled, block the request
+  if is_prompt_response_none(prompt_response) {
+    log_debug("Prompt cancelled, aborting request")
+    return
+  }
+
   // Get target and swap style (with inheritance support)
   log_debug(
     "About to call get_target_with_inherit on element: " + element.tagName(),
@@ -249,6 +260,10 @@ fn process_element_with_trigger(
 
   // Fire the config request event - this may modify parameters
   let headers : Map[String, String] = { "HX-Request": "true" }
+  // Add HX-Prompt header if prompt response exists
+  if not(is_prompt_response_none(prompt_response)) {
+    headers["HX-Prompt"] = prompt_response_str
+  }
   let headers_any = map_to_any(headers)
   let config_allowed = fire_config_request_event(
     element, parameters, headers_any,
@@ -276,12 +291,19 @@ fn process_element_with_trigger(
       http_method,
       Some(form_data_from_params),
       Some(element),
+      prompt_response,
       callback,
     )
   } else {
     // For GET/DELETE, append modified parameters as query params
     let actual_url = js_object_to_query_string(url, parameters)
-    request_async(actual_url, http_method, Some(element), callback)
+    request_async(
+      actual_url,
+      http_method,
+      Some(element),
+      prompt_response,
+      callback,
+    )
   }
 }
 

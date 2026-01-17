@@ -957,6 +957,49 @@ pub extern "js" fn window_confirm_option(message_opt : String?) -> Bool =
   #|}
 
 ///|
+/// Call window.prompt() with the given message
+pub extern "js" fn window_prompt(message : String) -> String? =
+  #|(message) => {
+  #|  const result = window.prompt(message);
+  #|  if (result === null) {
+  #|    return { $tag: 0 };
+  #|  }
+  #|  return { $tag: 1, _0: result };
+  #|}
+
+///|
+/// Call window.prompt() with optional message (unwraps MoonBit Option type)
+pub extern "js" fn window_prompt_option(message_opt : String?) -> String? =
+  #|(message_opt) => {
+  #|  const message = (message_opt && message_opt.$tag === 1) ? message_opt._0 : null;
+  #|  if (message) {
+  #|    const result = window.prompt(message);
+  #|    if (result === null) {
+  #|      return { $tag: 0 };
+  #|    }
+  #|    return { $tag: 1, _0: result };
+  #|  }
+  #|  return { $tag: 0 };  // No message, so no prompt
+  #|}
+
+///|
+/// Unwrap prompt response option to a string or null for JavaScript interop
+pub extern "js" fn unwrap_prompt_response(prompt_opt : String?) -> String =
+  #|(prompt_opt) => {
+  #|  if (prompt_opt && prompt_opt.$tag === 1) {
+  #|    return prompt_opt._0;
+  #|  }
+  #|  return "";
+  #|}
+
+///|
+/// Check if prompt response is None (cancelled)
+pub extern "js" fn is_prompt_response_none(prompt_opt : String?) -> Bool =
+  #|(prompt_opt) => {
+  #|  return !(prompt_opt && prompt_opt.$tag === 1);
+  #|}
+
+///|
 /// Get validate attribute from element
 extern "js" fn get_validate_attribute(elt : @dom.Element) -> Bool =
   #|(elt) => {
