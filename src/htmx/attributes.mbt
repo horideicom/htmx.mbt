@@ -661,7 +661,19 @@ extern "js" fn get_indicator_elements(
   #|    } else if (indicatorValue === 'previous') {
   #|      return [elt.previousElementSibling].filter(e => e != null);
   #|    } else if (indicatorValue === 'next') {
-  #|      return [elt.nextElementSibling].filter(e => e != null);
+  #|      const next = elt.nextElementSibling;
+  #|      return next ? [next] : [];
+  #|    } else if (indicatorValue.startsWith('next ')) {
+  #|      const css = indicatorValue.substring(5);
+  #|      const next = elt.nextElementSibling;
+  #|      if (next) {
+  #|        try {
+  #|          return next.matches(css) ? [next] : [];
+  #|        } catch (e) {
+  #|          return [];
+  #|        }
+  #|      }
+  #|      return [];
   #|    } else {
   #|      // Use querySelectorAll for CSS selectors
   #|      try {
@@ -1024,7 +1036,7 @@ pub extern "js" fn window_prompt_option(message_opt : String?) -> String? =
   #|    }
   #|    return { $tag: 1, _0: result };
   #|  }
-  #|  return { $tag: 0 };  // No message, so no prompt
+  #|  return { $tag: 1, _0: "" };  // No message, so no prompt shown - return empty string (Some)
   #|}
 
 ///|

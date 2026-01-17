@@ -32,7 +32,7 @@ describe('hx-indicator attribute', function() {
     a2.classList.contains('htmx-request').should.equal(false)
   })
 
-  it.skip('Indicator classes are properly put on element with relative indicator', function() {
+  it('Indicator classes are properly put on element with relative indicator', function() {
     this.server.respondWith('GET', '/test', 'Clicked!')
     var btn = make('<button hx-get="/test" hx-indicator="next a">Click Me!</button>')
     var a1 = make('<a id="a1"></a>')
