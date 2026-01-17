@@ -30,6 +30,14 @@ const config = {
       <script src="node_modules/chai-dom/chai-dom.js"></script>
       <script src="node_modules/sinon/pkg/sinon.js"></script>
       <script src="node_modules/mock-socket/dist/mock-socket.js"></script>
+
+      <script class="mocha-init">
+        window.should = window.chai.should()
+      </script>
+
+      <!-- Load test utilities BEFORE htmx so MockEventSource is available -->
+      <script src="test/util/util.js"></script>
+
       <script src="target/js/release/build/cmd/htmx_test/htmx_test.js"></script>
       <script>
         const versionNode = document.getElementById('version-number')
@@ -37,12 +45,6 @@ const config = {
           versionNode.innerText += window.htmx.version
         }
       </script>
-
-      <script class="mocha-init">
-        window.should = window.chai.should()
-      </script>
-
-      <script src="test/util/util.js"></script>
 
       <script type="module" src="${testFramework}"></script>
 
@@ -114,7 +116,7 @@ const config = {
     '!test/attributes/hx-on.js',
     '!test/attributes/hx-params.js',
     '!test/attributes/hx-request.js',
-    '!test/attributes/hx-sse.js',
+    // '!test/attributes/hx-sse.js',  // ENABLED for testing
     '!test/attributes/hx-validate.js',
     '!test/attributes/hx-ws.js',
     // Remaining attribute tests that depend on unimplemented features

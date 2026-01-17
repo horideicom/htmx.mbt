@@ -3,7 +3,149 @@
 pub fn init_sse_connections(doc_target : @core.Any) -> Unit {
   // Find all elements with hx-sse attribute
   find_and_init_sse_elements()
+  // Expose the SSE element processor for htmx.process
+  expose_sse_element_processor()
 }
+
+///|
+/// Expose the SSE element processor for use by htmx.process
+extern "js" fn expose_sse_element_processor() -> Unit =
+  #|() => {
+  #|  // This function processes a single SSE element
+  #|  // It's called by htmx.process when dynamically adding elements
+  #|  if (!window.htmx) window.htmx = {};
+  #|  // Store the processElement function from the main SSE initialization
+  #|  // We'll extract and expose it here
+  #|  window.htmx._processSSEElement = function(element) {
+  #|    // Check if already processed
+  #|    if (element._sseProcessed) return;
+  #|    element._sseProcessed = true;
+  #|    const sseAttr = element.getAttribute('hx-sse') || element.getAttribute('data-hx-sse');
+  #|    if (!sseAttr) return;
+  #|    console.log('[htmx.mbt SSE] Processing element:', sseAttr);
+  #|    // Use a Map (not WeakMap) to track connections - allows enumeration and testing
+  #|    if (!window.htmx._sse) window.htmx._sse = { connections: new Map() };
+  #|    // Check if EventSource is available, use mock if provided (for testing)
+  #|    const EventSourceImpl = window.MockEventSource || window.EventSource;
+  #|    if (!EventSourceImpl) {
+  #|      console.warn('[htmx.mbt SSE] EventSource not available');
+  #|      return;
+  #|    }
+  #|    // Parse the SSE attribute
+  #|    const parts = sseAttr.split(/\s+/);
+  #|    let url = null;
+  #|    const swapEvents = [];
+  #|    for (const part of parts) {
+  #|      if (part.startsWith('connect:')) {
+  #|        url = part.substring(8);
+  #|      } else if (part.startsWith('swap:')) {
+  #|        swapEvents.push(part.substring(5));
+  #|      }
+  #|    }
+  #|    if (!url) {
+  #|      console.warn('[htmx.mbt SSE] No connect URL found in hx-sse attribute');
+  #|      return;
+  #|    }
+  #|    // Check if we already have a connection for this URL
+  #|    let connection = window.htmx._sse.connections.get(url);
+  #|    let es = null;
+  #|    if (connection) {
+  #|      es = connection.es;
+  #|      // Add new swap events to existing connection
+  #|      for (const eventName of swapEvents) {
+  #|        if (!connection.swapEvents.includes(eventName)) {
+  #|          connection.swapEvents.push(eventName);
+  #|        }
+  #|      }
+  #|    } else {
+  #|      // Create new EventSource
+  #|      console.log('[htmx.mbt SSE] Creating EventSource for:', url);
+  #|      es = new EventSourceImpl(url);
+  #|      connection = { es, url, swapEvents, sourceElement: element };
+  #|      window.htmx._sse.connections.set(url, connection);
+  #|      // Set up open handler
+  #|      es.onopen = () => {
+  #|        console.log('[htmx.mbt SSE] Connection opened:', url);
+  #|        // Dispatch htmx:sse:open event to the element that initiated the connection
+  #|        const openEvent = new CustomEvent('htmx:sse:open', {
+  #|          bubbles: true,
+  #|          cancelable: true,
+  #|          detail: { url, source: es }
+  #|        });
+  #|        element.dispatchEvent(openEvent);
+  #|      };
+  #|      // Set up error handler
+  #|      es.onerror = (err) => {
+  #|        console.error('[htmx.mbt SSE] Connection error:', url, err);
+  #|        // Dispatch htmx:sse:error event to the element that initiated the connection
+  #|        const errorEvent = new CustomEvent('htmx:sse:error', {
+  #|          bubbles: true,
+  #|          cancelable: true,
+  #|          detail: { url, error: err, source: es }
+  #|        });
+  #|        element.dispatchEvent(errorEvent);
+  #|      };
+  #|    }
+  #|    // Set up swap event handlers
+  #|    for (const eventName of swapEvents) {
+  #|      console.log('[htmx.mbt SSE] Setting up swap handler for event:', eventName);
+  #|      if (!es) {
+  #|        console.error('[htmx.mbt SSE] EventSource not available for swap handlers');
+  #|        continue;
+  #|      }
+  #|      es.addEventListener(eventName, (evt) => {
+  #|        console.log('[htmx.mbt SSE] Received event:', eventName, evt.data);
+  #|        // Find all child elements with hx-sse="swap:<event>" or inherit from parent
+  #|        let targets = Array.from(element.querySelectorAll(`[hx-sse*="swap:${eventName}"], [data-hx-sse*="swap:${eventName}"]`));
+  #|        // Also check the element itself
+  #|        const selfAttr = element.getAttribute('hx-sse') || element.getAttribute('data-hx-sse');
+  #|        if (selfAttr && selfAttr.includes(`swap:${eventName}`)) {
+  #|          targets.push(element);
+  #|        }
+  #|        for (const target of targets) {
+  #|          // Determine what to swap
+  #|          const swapData = evt.data;
+  #|          // Get swap style (default innerHTML)
+  #|          const swapStyle = target.getAttribute('hx-swap') || target.getAttribute('data-hx-swap') || 'innerHTML';
+  #|          // Perform the swap
+  #|          switch (swapStyle) {
+  #|            case 'innerHTML':
+  #|              target.innerHTML = swapData;
+  #|              break;
+  #|            case 'outerHTML':
+  #|              target.outerHTML = swapData;
+  #|              break;
+  #|            case 'beforebegin':
+  #|              target.insertAdjacentHTML('beforebegin', swapData);
+  #|              break;
+  #|            case 'afterbegin':
+  #|              target.insertAdjacentHTML('afterbegin', swapData);
+  #|              break;
+  #|            case 'beforeend':
+  #|              target.insertAdjacentHTML('beforeend', swapData);
+  #|              break;
+  #|            case 'afterend':
+  #|              target.insertAdjacentHTML('afterend', swapData);
+  #|              break;
+  #|            case 'textContent':
+  #|              target.textContent = swapData;
+  #|              break;
+  #|            default:
+  #|              target.innerHTML = swapData;
+  #|              break;
+  #|          }
+  #|          // Dispatch htmx:sse:message event
+  #|          const messageEvent = new CustomEvent('htmx:sse:message', {
+  #|            bubbles: true,
+  #|            cancelable: true,
+  #|            detail: { event: eventName, data: swapData, source: es }
+  #|          });
+  #|          target.dispatchEvent(messageEvent);
+  #|        }
+  #|      });
+  #|    }
+  #|  };
+  #|}
 
 ///|
 /// Find and initialize all SSE elements
@@ -11,9 +153,17 @@ extern "js" fn find_and_init_sse_elements() -> Unit =
   #|() => {
   #|  console.log('[htmx.mbt SSE] Initializing SSE connections');
   #|
-  #|  // Use WeakMap to track connections by URL
+  #|  // Use a Map (not WeakMap) to track connections - allows enumeration and testing
+  #|  // In production, a WeakMap would be better for GC, but Map is needed for tests
   #|  if (!window.htmx) window.htmx = {};
-  #|  if (!window.htmx._sse) window.htmx._sse = { connections: new WeakMap() };
+  #|  if (!window.htmx._sse) window.htmx._sse = { connections: new Map() };
+  #|
+  #|  // Check if EventSource is available, use mock if provided (for testing)
+  #|  const EventSourceImpl = window.MockEventSource || window.EventSource;
+  #|  if (!EventSourceImpl) {
+  #|    console.warn('[htmx.mbt SSE] EventSource not available');
+  #|    return;
+  #|  }
   #|
   #|  // Process existing elements with hx-sse
   #|  const processElement = (element) => {
@@ -42,15 +192,17 @@ extern "js" fn find_and_init_sse_elements() -> Unit =
   #|
   #|    // Check if we already have a connection for this URL
   #|    let connection = null;
-  #|    const existingConnection = window.htmx._sse.connections.get(element);
+  #|    let es = null;
+  #|    const existingConnection = window.htmx._sse.connections.get(url);
   #|    if (existingConnection) {
-  #|      connection = existingConnection.es;
+  #|      connection = existingConnection;
+  #|      es = connection.es;
   #|    } else {
   #|      // Create new EventSource
   #|      console.log('[htmx.mbt SSE] Creating EventSource for:', url);
-  #|      const es = new EventSource(url);
-  #|      connection = es;
-  #|      window.htmx._sse.connections.set(element, { es, url, swapEvents });
+  #|      es = new EventSourceImpl(url);
+  #|      connection = { es, url, swapEvents };
+  #|      window.htmx._sse.connections.set(url, connection);
   #|
   #|      // Set up open handler
   #|      es.onopen = () => {
@@ -81,11 +233,16 @@ extern "js" fn find_and_init_sse_elements() -> Unit =
   #|    for (const eventName of swapEvents) {
   #|      console.log('[htmx.mbt SSE] Setting up swap handler for event:', eventName);
   #|
+  #|      if (!es) {
+  #|        console.error('[htmx.mbt SSE] EventSource not available for swap handlers');
+  #|        continue;
+  #|      }
+  #|
   #|      es.addEventListener(eventName, (evt) => {
   #|        console.log('[htmx.mbt SSE] Received event:', eventName, evt.data);
   #|
   #|        // Find all child elements with hx-sse="swap:<event>" or inherit from parent
-  #|        const targets = element.querySelectorAll(`[hx-sse*="swap:${eventName}"], [data-hx-sse*="swap:${eventName}"]`);
+  #|        let targets = Array.from(element.querySelectorAll(`[hx-sse*="swap:${eventName}"], [data-hx-sse*="swap:${eventName}"]`));
   #|
   #|        // Also check the element itself
   #|        const selfAttr = element.getAttribute('hx-sse') || element.getAttribute('data-hx-sse');
@@ -222,25 +379,24 @@ extern "js" fn register_sse_trigger(
   #|  }
   #|
   #|  // Get or create EventSource connection
-  #|  if (!window.htmx._sse) window.htmx._sse = { connections: new WeakMap() };
-  #|
-  #|  let connection = window.htmx._sse.connections.get(sseParent);
-  #|  if (!connection) {
-  #|    // Parse URL from parent
-  #|    const sseAttr = sseParent.getAttribute('hx-sse') || sseParent.getAttribute('data-hx-sse');
-  #|    const parts = sseAttr.split(/\s+/);
-  #|    let connectUrl = null;
-  #|    for (const part of parts) {
-  #|      if (part.startsWith('connect:')) {
-  #|        connectUrl = part.substring(8);
-  #|        break;
-  #|      }
+  #|  if (!window.htmx._sse) window.htmx._sse = { connections: new Map() };
+  #|  const EventSourceImpl = window.MockEventSource || window.EventSource;
+  #|  // Parse URL from parent
+  #|  const sseAttr = sseParent.getAttribute('hx-sse') || sseParent.getAttribute('data-hx-sse');
+  #|  const parts = sseAttr.split(/\s+/);
+  #|  let connectUrl = null;
+  #|  for (const part of parts) {
+  #|    if (part.startsWith('connect:')) {
+  #|      connectUrl = part.substring(8);
+  #|      break;
   #|    }
-  #|    if (!connectUrl) return;
-  #|
-  #|    const es = new EventSource(connectUrl);
+  #|  }
+  #|  if (!connectUrl) return;
+  #|  let connection = window.htmx._sse.connections.get(connectUrl);
+  #|  if (!connection) {
+  #|    const es = new EventSourceImpl(connectUrl);
   #|    connection = { es, url: connectUrl, swapEvents: [] };
-  #|    window.htmx._sse.connections.set(sseParent, connection);
+  #|    window.htmx._sse.connections.set(connectUrl, connection);
   #|  }
   #|
   #|  // Set up event listener for this specific event

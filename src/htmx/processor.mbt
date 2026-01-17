@@ -1806,6 +1806,18 @@ extern "js" fn init_htmx_process_api() -> Unit =
   #|        }
   #|      }
   #|    }
+  #|    // Process SSE elements (hx-sse) immediately
+  #|    if (window.htmx && window.htmx._processSSEElement) {
+  #|      // Check the element itself
+  #|      if (element.getAttribute && (element.getAttribute('hx-sse') || element.getAttribute('data-hx-sse'))) {
+  #|        window.htmx._processSSEElement(element);
+  #|      }
+  #|      // Check descendants
+  #|      const sseElements = element.querySelectorAll('[hx-sse], [data-hx-sse]');
+  #|      for (const el of sseElements) {
+  #|        window.htmx._processSSEElement(el);
+  #|      }
+  #|    }
   #|  };
   #|  // Initialize _internal object
   #|  if (!window.htmx._internal) {
