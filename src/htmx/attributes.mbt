@@ -648,16 +648,67 @@ extern "js" fn get_indicator_elements(
   elt : @dom.Element,
 ) -> Array[@dom.Element] =
   #|(elt) => {
-  #|  // Get hx-indicator attribute value
-  #|  let indicatorAttr = 'hx-indicator';
-  #|  const indicatorValue = elt.getAttribute(indicatorAttr) || elt.getAttribute('data-' + indicatorAttr);
-  #|
-  #|  if (indicatorValue) {
+  #|  // Helper function to resolve 'inherit' keyword in indicator selector
+  #|  const resolveInherit = (element, selector) => {
+  #|    const parts = selector.split(',').map(s => s.trim());
+  #|    const results = [];
+  #|    for (const part of parts) {
+  #|      if (part === 'inherit') {
+  #|        const parent = element.parentElement;
+  #|        if (parent) {
+  #|          const parentIndicator = parent.getAttribute('hx-indicator') || parent.getAttribute('data-hx-indicator');
+  #|          if (parentIndicator) {
+  #|            // Recursively resolve parent's indicator in case it also contains 'inherit'
+  #|            const resolved = resolveInherit(parent, parentIndicator);
+  #|            results.push(resolved);
+  #|          } else {
+  #|            // Chain breaks when parent has no indicator
+  #|            results.push('this');
+  #|          }
+  #|        } else {
+  #|          results.push('this');
+  #|        }
+  #|      } else {
+  #|        results.push(part);
+  #|      }
+  #|    }
+  #|    return results.join(', ');
+  #|  };
+  #|  // Helper function to get indicator value from element or parent
+  #|  const getIndicatorValue = (element) => {
+  #|    let indicatorAttr = 'hx-indicator';
+  #|    let indicatorValue = element.getAttribute(indicatorAttr) || element.getAttribute('data-' + indicatorAttr);
+  #|    let currentElement = element;
+  #|    // If element has no indicator, check parent elements
+  #|    while (!indicatorValue && currentElement.parentElement) {
+  #|      currentElement = currentElement.parentElement;
+  #|      indicatorValue = currentElement.getAttribute(indicatorAttr) || currentElement.getAttribute('data-' + indicatorAttr);
+  #|    }
+  #|    return indicatorValue;
+  #|  };
+  #|  const rawValue = getIndicatorValue(elt);
+  #|  if (rawValue) {
+  #|    // Resolve 'inherit' keyword
+  #|    const indicatorValue = resolveInherit(elt, rawValue);
   #|    // Find elements by selector
   #|    if (indicatorValue === 'this') {
+  #|      // Return element with hx-indicator attribute when using 'this'
+  #|      let currentElement = elt;
+  #|      while (currentElement) {
+  #|        if (currentElement.hasAttribute('hx-indicator') || currentElement.hasAttribute('data-hx-indicator')) {
+  #|          return [currentElement];
+  #|        }
+  #|        currentElement = currentElement.parentElement;
+  #|      }
   #|      return [elt];
-  #|    } else if (indicatorValue === 'closest') {
-  #|      return [elt];
+  #|    } else if (indicatorValue.startsWith('closest ')) {
+  #|      const css = indicatorValue.substring(8);
+  #|      try {
+  #|        const closest = elt.closest(css);
+  #|        return closest ? [closest] : [];
+  #|      } catch (e) {
+  #|        return [];
+  #|      }
   #|    } else if (indicatorValue === 'previous') {
   #|      return [elt.previousElementSibling].filter(e => e != null);
   #|    } else if (indicatorValue === 'next') {
@@ -683,7 +734,6 @@ extern "js" fn get_indicator_elements(
   #|      }
   #|    }
   #|  }
-  #|
   #|  // No indicator attribute, return the element itself
   #|  return [elt];
   #|}
