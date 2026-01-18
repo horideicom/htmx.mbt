@@ -466,11 +466,12 @@ extern "js" fn request_with_form_async_callback(
 extern "js" fn map_to_js_object(m : Map[String, String]) -> @core.Any =
   #|(m) => {
   #|  const obj = {};
-  #|  // MoonBit Map is a hash map structure with entries array
-  #|  if (m && m.entries) {
-  #|    for (const entry of m.entries) {
-  #|      if (entry && entry.key !== undefined) {
-  #|        obj[entry.key] = entry.value;
+  #|  // MoonBit Map structure: { buf: [{_0: key, _1: value}, ...], start, end }
+  #|  if (m && m.buf && Array.isArray(m.buf)) {
+  #|    for (let i = m.start || 0; i < (m.end || m.buf.length); i++) {
+  #|      const entry = m.buf[i];
+  #|      if (entry && entry._0 !== undefined) {
+  #|        obj[entry._0] = entry._1;
   #|      }
   #|    }
   #|  }

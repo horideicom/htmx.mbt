@@ -127,7 +127,7 @@ const config = {
     '!test/attributes/hx-replace-url.js',
     '!test/attributes/hx-push-url.js',  // already listed, but let's be explicit
     // Exclude remaining failing tests
-    '!test/attributes/hx-headers.js',
+    '!test/attributes/hx-headers.js',  // TODO: Test timing out - "browser disconnected" error. Needs investigation.
     '!test/attributes/hx-disinherit.js',
   ],
   reporters: [
