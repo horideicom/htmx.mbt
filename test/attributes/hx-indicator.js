@@ -59,7 +59,7 @@ describe('hx-indicator attribute', function() {
     a2.classList.contains('htmx-request').should.equal(false)
   })
 
-  it.skip('allows closest syntax in hx-indicator', function() {
+  it('allows closest syntax in hx-indicator', function() {
     this.server.respondWith('GET', '/test', 'Clicked!')
     var div = make('<div id="d1"><button id="b1" hx-get="/test" hx-indicator="closest div">Click Me!</button></div>')
     var btn = byId('b1')
