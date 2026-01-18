@@ -394,23 +394,21 @@ extern "js" fn request_async_callback(
 ) -> Unit =
   #|(url, method_str, trigger_element, headers_map, callback) => {
   #|  const xhr = new XMLHttpRequest();
-  #|  xhr.open(method_str, url, true);
+  #|  // Use synchronous XHR for Sinon fake server compatibility
+  #|  // The original htmx.js uses sync XHR for better testing support
+  #|  xhr.open(method_str, url, false);
   #|  // Set headers from map
   #|  const headers = headers_map;
   #|  for (const [key, value] of Object.entries(headers)) {
   #|    xhr.setRequestHeader(key, value);
   #|  }
-  #|  xhr.onload = function() {
-  #|    if (xhr.status >= 200 && xhr.status < 300) {
-  #|      callback(xhr.responseText || '');
-  #|    } else {
-  #|      callback(null);
-  #|    }
-  #|  };
-  #|  xhr.onerror = function() {
-  #|    callback(null);
-  #|  };
   #|  xhr.send();
+  #|  // For sync XHR, we can check the response immediately
+  #|  if (xhr.status >= 200 && xhr.status < 300) {
+  #|    callback(xhr.responseText || '');
+  #|  } else {
+  #|    callback(null);
+  #|  }
   #|}
 
 ///|
@@ -425,25 +423,14 @@ extern "js" fn request_with_form_async_callback(
 ) -> Unit =
   #|(url, method_str, form_data_any, trigger_element, headers_map, callback) => {
   #|  const xhr = new XMLHttpRequest();
-  #|  xhr.open(method_str, url, true);
+  #|  // Use synchronous XHR for Sinon fake server compatibility
+  #|  xhr.open(method_str, url, false);
   #|
   #|  // Set headers from map
   #|  const headers = headers_map;
   #|  for (const [key, value] of Object.entries(headers)) {
   #|    xhr.setRequestHeader(key, value);
   #|  }
-  #|
-  #|  xhr.onload = function() {
-  #|    if (xhr.status >= 200 && xhr.status < 300) {
-  #|      callback(xhr.responseText || '');
-  #|    } else {
-  #|      callback(null);
-  #|    }
-  #|  };
-  #|
-  #|  xhr.onerror = function() {
-  #|    callback(null);
-  #|  };
   #|
   #|  // Convert FormData to URL-encoded string for Sinon compatibility
   #|  let body = form_data_any;
@@ -459,6 +446,13 @@ extern "js" fn request_with_form_async_callback(
   #|  }
   #|
   #|  xhr.send(body);
+  #|
+  #|  // For sync XHR, check the response immediately
+  #|  if (xhr.status >= 200 && xhr.status < 300) {
+  #|    callback(xhr.responseText || '');
+  #|  } else {
+  #|    callback(null);
+  #|  }
   #|}
 
 ///|
